@@ -1,0 +1,7 @@
+Flask
+pandas
+openpyxl
+pdfkit
+yagmail
+hashids
+gunicorn
