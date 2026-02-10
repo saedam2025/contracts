@@ -239,13 +239,6 @@
         <button type="button" onclick="deleteSelected()" style="background:#dc3545; color: white; border: none; padding: 6px 15px; border-radius: 4px; cursor: pointer; margin-left: auto; font-size: 0.8rem;">선택 삭제</button>
     </form>
 
-<div class="pagination">
-    {% for p in range(1, total_pages + 1) %}
-    <a href="{{ url_for('admin_page', page=p, year=request.args.get('year'), category=request.args.get('category'), school=request.args.get('school'), dept=request.args.get('dept'), name=request.args.get('name')) }}" 
-       class="{{ 'active' if p == current_page else '' }}">{{p}}</a>
-    {% endfor %}
-</div>
-
     <div class="table-wrapper">
         <table>
             <thead>
