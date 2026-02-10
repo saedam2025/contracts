@@ -50,7 +50,7 @@ def init_excel():
         df = pd.DataFrame(columns=columns)
         df.to_excel(EXCEL_FILE, index=False)
     else:
-        df = pd.read_excel(EXCEL_FILE)
+        df = pd.read_excel(EXCEL_FILE, dtype=str)
         for col in columns:
             if col not in df.columns:
                 df[col] = ""
@@ -71,7 +71,7 @@ def login():
         ssn = request.form['ssn'].replace("-", "")
         ssn_last4 = request.form['ssn_last4']
         try:
-            df = pd.read_excel(EXCEL_FILE)
+            df = pd.read_excel(EXCEL_FILE, dtype=str)
             user_rows = df[(df['성명'] == name) & (df['주민번호'].astype(str).str.replace("-", "") == ssn)]
             if not user_rows.empty and ssn[-4:] == ssn_last4:
                 session['user_name'] = name
@@ -85,7 +85,7 @@ def login():
 @app.route('/list')
 def contract_list():
     if 'user_name' not in session: return redirect(url_for('login'))
-    df = pd.read_excel(EXCEL_FILE).fillna("")
+    df = pd.read_excel(EXCEL_FILE, dtype=str).fillna("")
     my_contracts_df = df[(df['성명'] == session['user_name']) & (df['주민번호'].astype(str) == session['user_ssn']) & (df['계약완료일시'] == "")]
     contracts = []
     for idx, row in my_contracts_df.iterrows():
@@ -101,7 +101,7 @@ def contract(safe_id):
     if not decoded: return abort(404)
     orig_idx = decoded[0]
     try:
-        df = pd.read_excel(EXCEL_FILE)
+        df = pd.read_excel(EXCEL_FILE, dtype=str)
         if orig_idx >= len(df): return abort(404)
         target_row = df.iloc[orig_idx]
         if target_row['성명'] != session.get('user_name'):
@@ -134,7 +134,7 @@ def save_contract():
     idx = int(data['orig_idx'])
     now_dt = datetime.now(KST)
     try:
-        df = pd.read_excel(EXCEL_FILE)
+        df = pd.read_excel(EXCEL_FILE, dtype=str)
         if (str(df.at[idx, '성명']) != session.get('user_name')):
              return jsonify({"status": "error", "message": "잘못된 접근입니다."}), 403
         
@@ -245,7 +245,7 @@ def admin_page():
     s_name = request.args.get('name', '')
 
     try:
-        full_df = pd.read_excel(EXCEL_FILE).fillna("")
+        full_df = pd.read_excel(EXCEL_FILE, dtype=str).fillna("")
         df = full_df.copy().sort_index(ascending=False)
 
         # 필터링 적용
@@ -276,8 +276,8 @@ def upload_excel():
     if 'excel_file' not in request.files: return jsonify({'status': 'error', 'message': '파일 없음'}), 400
     file = request.files['excel_file']
     try:
-        new_df = pd.read_excel(file)
-        existing_df = pd.read_excel(EXCEL_FILE) if os.path.exists(EXCEL_FILE) else pd.DataFrame()
+        new_df = pd.read_excel(file, dtype=str)
+        existing_df = pd.read_excel(EXCEL_FILE, dtype=str) if os.path.exists(EXCEL_FILE) else pd.DataFrame()
         now_dt_kst = datetime.now(KST)
         if '연도' not in new_df.columns: new_df['연도'] = now_dt_kst.year
         combined_df = pd.concat([existing_df, new_df], ignore_index=True)
@@ -289,7 +289,7 @@ def upload_excel():
 def admin_add():
     try:
         new_data = request.json
-        df = pd.read_excel(EXCEL_FILE)
+        df = pd.read_excel(EXCEL_FILE, dtype=str)
         new_row = {
             '계약구분': new_data.get('계약구분', '방과후강사'), '수탁학교명': new_data.get('수탁학교명'),
             '부서명': new_data.get('부서명'), '성명': new_data.get('성명'), '주민번호': new_data.get('주민번호'),
@@ -304,7 +304,7 @@ def admin_add():
 def delete_contracts():
     indices = request.json.get('indices', [])
     try:
-        df = pd.read_excel(EXCEL_FILE)
+        df = pd.read_excel(EXCEL_FILE, dtype=str)
         for idx in [int(i) for i in indices]:
             if idx in df.index:
                 filename = df.at[idx, '파일명']
@@ -319,7 +319,7 @@ def delete_contracts():
 @app.route('/download_pdf/<int:idx>')
 def download_pdf(idx):
     try:
-        df = pd.read_excel(EXCEL_FILE)
+        df = pd.read_excel(EXCEL_FILE, dtype=str)
         pdf_path = os.path.join(CONTRACTS_DIR, str(df.at[idx, '파일명']))
         return send_file(pdf_path, mimetype='application/pdf')
     except: return "파일을 찾을 수 없습니다.", 404
