@@ -227,7 +227,7 @@ def save_contract():
     except Exception as e: return jsonify({"status": "error", "message": f"오류 발생: {str(e)}"}), 500
 
 # --- [관리자 기능 로직] ---
-@app.route('/admin', methods=['GET', 'POST'])
+@app.route('/c_admin', methods=['GET', 'POST'])
 def admin_page():
     if request.method == 'POST':
         if request.form.get('admin_pw') == ADMIN_PASSWORD:
@@ -262,7 +262,7 @@ def admin_page():
         return render_template('c_admin_.html', items=items, total_pages=total_pages, current_page=page, years=years, schools=schools, depts=depts)
     except Exception as e: return f"에러: {str(e)}"
 
-@app.route('/admin/upload_excel', methods=['POST'])
+@app.route('/c_admin/upload_excel', methods=['POST'])
 def upload_excel():
     if 'excel_file' not in request.files: return jsonify({'status': 'error', 'message': '파일 없음'}), 400
     file = request.files['excel_file']
@@ -276,7 +276,7 @@ def upload_excel():
         return jsonify({'status': 'success', 'message': f'{len(new_df)}명 추가됨'})
     except Exception as e: return jsonify({'status': 'error', 'message': str(e)}), 500
 
-@app.route('/admin/add', methods=['POST'])
+@app.route('/c_admin/add', methods=['POST'])
 def admin_add():
     try:
         new_data = request.json
@@ -291,7 +291,7 @@ def admin_add():
         return jsonify({'status': 'success'})
     except Exception as e: return jsonify({'status': 'error', 'message': str(e)}), 500
 
-@app.route('/admin/delete', methods=['POST'])
+@app.route('/c_admin/delete', methods=['POST'])
 def delete_contracts():
     indices = request.json.get('indices', [])
     try:
@@ -315,7 +315,7 @@ def download_pdf(idx):
         return send_file(pdf_path, mimetype='application/pdf')
     except: return "파일 없음", 404
 
-@app.route('/admin/logout')
+@app.route('/c_admin/logout')
 def admin_logout():
     session.pop('admin_logged_in', None)
     return redirect(url_for('login'))
