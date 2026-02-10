@@ -127,14 +127,28 @@ Article 9. Contract Period and Renewal
 ④ In the event that after-school classes are suspended due to construction, disaster, or other unavoidable circumstances at the designated school, no fees shall be payable for the period during which classes are not conducted.
 
 
-제 10 조 【수수료】
+제 10 조 【교육의 중립성 준수】
+ "수탁자"는 방과후학교 교육활동에 참여 · 운영함에 있어 정치적 · 종교적 이념 등 교육의 중립성을 준수하여
+ 모든 학생이 안전하고 평등한 환경에서 배움을 이어갈 수 있도록 하여야 한다.
+Article 10. Maintenance of Educational Neutrality
+In participating in and operating After-School programs, the "Contractee" shall adhere to the principle of educational neutrality, including political and religious neutrality, to ensure that all students can continue their learning in a safe and equal environment.
+
+제 11 조 【개인정보제공】
+
+ 본 계약과 방과후 위탁교육을 위한 제반업무를 위해 "위탁자" 및 학교는 위 개인정보(‘거주지 주소’항목은 제외) 및 
+ "위탁자"에게 제공한 이력서상의 사진 및 경력, 연락처, 자격사항등의 개인정보 활용을 할 수 있다.
+Article 11. Provision of Personal Information
+For the purposes of this contract and general administrative tasks related to after-school commissioned education, the "Contractor" and the School may utilize the personal information provided above (excluding the 'residential address' field) as well as information from the resume submitted to the "Contractor," including photos, work experience, contact information, and qualifications.
+
+
+제 12 조 【수수료】
      ① 수탁자에게 지급되는 수수료의 산정 방식, 지급 기준 및 금액은 학교별로 상이 할 수 있으며, 이에 관한 구체적인 사항은 
         각 별첨에 따른다.
      ② 수수료는 실제로 수행된 수업 및 위탁업무를 기준으로 산정하며, 수업이 진행되지 않은 날 또는 위탁 업무가 수행되지 
        않은 기간에 대해서는 수수료를 지급하지 않는다.
      ③ 수수료는 월 단위로 산정하여, 강의를 마친 월의 다음 달 22일 18시 이전에 지급한다.
      ④ 지급일이 공휴일 또는 연휴인 경우에는, 그 다음 첫 번째 평일 18시 이전에 지급한다.
-Article 10. Payment
+Article 12. Payment
     ① The method of fee calculation, payment standards, and fee amounts may vary by school and shall be specified 
        in the applicable Appendix.
     ② Fees shall be calculated based on classes and entrusted services actually performed. 
@@ -145,9 +159,9 @@ Article 10. Payment
      on the next business day.
 
 
-제 11 조 【준용】
+제 13 조 【준용】
 본 계약에 정하지 아니한 사항에 대해서는 대한민국의 관계 법령 및 일반적인 상관례에 따른다.
-Article 11. Governing Law
+Article 13. Governing Law
 Any matters not specified in this Agreement shall be governed by the relevant laws and regulations of the Republic of Korea and generally accepted commercial practices.
 
 
