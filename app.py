@@ -226,7 +226,7 @@ def save_contract():
             target_user_email = str(data.get('email', '')).strip()
             if target_user_email and "@" in target_user_email:
                 yag = yagmail.SMTP(SENDER_EMAIL, SENDER_PASSWORD)
-                yag.send(to=[target_user_email, SENDER_EMAIL], subject=f"[계약완료] {data['name']}님 {doc_title} ({final_school_name})", contents=[f" {doc_title} 계약이 완료되었습니다. \n\n첨부된 파일을 확인하세요."], attachments=pdf_path)
+                yag.send(to=[target_user_email, SENDER_EMAIL], subject=f"[계약완료] {data['name']}님 {doc_title} ({final_school_name})", contents=[f" '{doc_title}' 계약이 완료되었습니다. \n\n첨부된 파일을 확인하세요."], attachments=pdf_path)
         except: pass
         return jsonify({"status": "success", "message": "계약이 정상적으로 완료되었으며 이메일로 발송되었습니다."})
     except Exception as e: return jsonify({"status": "error", "message": f"오류 발생: {str(e)}"}), 500
@@ -279,7 +279,7 @@ def upload_excel():
         if '연도' not in new_df.columns: new_df['연도'] = str(now_dt_kst.year)
         combined_df = pd.concat([existing_df, new_df], ignore_index=True)
         combined_df.to_excel(EXCEL_FILE, index=False)
-        return jsonify({'status': 'success', 'message': f'{len(new_df)}명 추가됨'})
+        return jsonify({'status': 'success', 'message': f'{len(new_df)}명의 계약정보가 추가 되었습니다.'})
     except Exception as e: return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @app.route('/c_admin/add', methods=['POST'])
