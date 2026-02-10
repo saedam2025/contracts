@@ -158,7 +158,7 @@ def save_contract():
                 <p><b>[위탁자]</b></p>
                 <p style="font-size: 20px; line-height: 1.6; position: relative; width: 280px;">
                (사)새담청소년교육문화원
-             <span style="display: block; text-align: right; padding-right: 45px;">이사장</span>
+             <span style="display: block; text-align: right; padding-right: 40px;">이사장</span>
             <img src="{stamp_uri}" style="position: absolute; right: -60; bottom: -10px; width: 90px;">
                 </p>
             </div>
