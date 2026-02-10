@@ -158,7 +158,7 @@ def save_contract():
                 <p><b>[위탁자]</b></p>
                 <p style="font-size: 20px; line-height: 1.6; position: relative; width: 280px;">
                (사)새담청소년교육문화원
-             <span style="display: block; text-align: right; padding-right: 62px;">이사장</span>
+             <span style="display: block; text-align: right; padding-right: 64px;">이사장</span>
             <img src="{stamp_uri}" style="position: absolute; right: -60; bottom: -10px; width: 90px;">
                 </p>
             </div>
@@ -226,7 +226,7 @@ def save_contract():
             target_user_email = str(data.get('email', '')).strip()
             if target_user_email and "@" in target_user_email:
                 yag = yagmail.SMTP(SENDER_EMAIL, SENDER_PASSWORD)
-                yag.send(to=[target_user_email, SENDER_EMAIL], subject=f"[계약완료] {data['name']}님 {doc_title} ({final_school_name})", contents=[f" {doc_title} 계약 작성이 완료되었습니다. 첨부된 파일을 확인하세요."], attachments=pdf_path)
+                yag.send(to=[target_user_email, SENDER_EMAIL], subject=f"[계약완료] {data['name']}님 {doc_title} ({final_school_name})", contents=[f" {doc_title} 계약이 완료되었습니다. \n\n첨부된 파일을 확인하세요."], attachments=pdf_path)
         except: pass
         return jsonify({"status": "success", "message": "계약이 정상적으로 완료되었으며 이메일로 발송되었습니다."})
     except Exception as e: return jsonify({"status": "error", "message": f"오류 발생: {str(e)}"}), 500
