@@ -124,6 +124,14 @@
             color: #333;
             border-bottom: 1px solid #ccc;
         }
+
+
+#sig-canvas {
+    /* 모바일 터치 시 브라우저 스크롤과 서명 동작의 충돌을 방지하는 핵심 속성 */
+    touch-action: none; 
+    -webkit-user-select: none;
+    user-select: none;
+}
     </style>
 </head>
 <body>
@@ -205,7 +213,7 @@
         </div>
         <div class="info-item" style="grid-column: span 2;">
             <label>주소</label>
-            <input type="text" id="address" class="input-field" placeholder="주소를 입력하세요">
+            <input type="text" id="address" class="input-field" placeholder="등본상 주소를 입력하세요">
         </div>
     </div>
 
