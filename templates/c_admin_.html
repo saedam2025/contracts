@@ -21,7 +21,6 @@
             margin: 0; padding: 20px 0; color: var(--text-dark);
         }
 
-        /* [수정] 전체 컨테이너 넓이를 800px로 고정 */
         .admin-container {
             width: 1200px; 
             margin: 0 auto; 
@@ -44,7 +43,6 @@
         }
         .btn-add-toggle:hover { background: #218838; transform: translateY(-1px); }
 
-        /* [수정] 신규 등록 폼 - 2단 배열로 다듬기 */
         .input-section { 
             background: #fdfdfd; 
             border: 1px solid var(--saedam-blue); 
@@ -53,13 +51,12 @@
             margin-bottom: 25px; 
             display: none; 
         }
-.input-grid { 
-        display: grid; 
-        /* [수정] 2단에서 3단 배열로 변경 */
-        grid-template-columns: 1fr 1fr 1fr; 
-        gap: 15px 20px; 
-        margin-bottom: 20px; 
-    }
+        .input-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr 1fr; 
+            gap: 15px 20px; 
+            margin-bottom: 20px; 
+        }
         .input-group { display: flex; flex-direction: column; gap: 6px; }
         .input-group label { font-size: 0.8rem; font-weight: 700; color: var(--saedam-navy); }
         .input-group input, .input-group select { 
@@ -69,13 +66,11 @@
             font-size: 0.85rem;
         }
 
-        /* 테이블 스타일 */
         .table-wrapper { width: 100%; border: 1px solid var(--border-color); border-radius: 8px; background: #fff; margin-bottom: 20px; }
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         th, td { padding: 10px 4px; font-size: 0.75rem; border-bottom: 1px solid var(--border-color); text-align: center; }
         th { background: #f1f5f9; color: var(--saedam-navy); font-weight: 700; }
 
-        /* 테이블 열 넓이 조정 */
         .col-chk { width: 35px; }
         .col-num { width: 45px; }
         .col-year { width: 55px; }
@@ -92,7 +87,6 @@
         }
         .name-click:hover { background-color: #e7f1ff; }
 
-        /* 상세 정보 테이블 */
         .detail-row { display: none; background-color: #fcfdfe; }
         .detail-content-box { padding: 20px; border-bottom: 2px solid #eee; }
 
@@ -173,6 +167,10 @@
         <div class="input-group"><label>수수료</label><input type="text" id="new-fee" placeholder="0"></div>
         
         <div class="input-group"><label>보조금</label><input type="text" id="new-subsidy" placeholder="0"></div>
+        <div class="input-group"><label>경력수당</label><input type="text" id="new-career" placeholder="0"></div>
+        <div class="input-group"><label>직책수당</label><input type="text" id="new-position" placeholder="0"></div>
+
+        <div class="input-group"><label>기타수당</label><input type="text" id="new-etc" placeholder="0"></div>
         <div class="input-group"><label>근무시간</label><input type="text" id="new-work-time" placeholder="예: 주 5일"></div>
         <div class="input-group"><label>계약기간</label><input type="text" id="new-period" placeholder="예: 2026.03.01~"></div>
     </div>
@@ -311,7 +309,8 @@
 
     <div class="pagination">
         {% for p in range(1, total_pages + 1) %}
-        <a href="{{ url_for('admin_page', page=p, year=request.args.get('year'), name=request.args.get('name')) }}" class="{{ 'active' if p == current_page else '' }}">{{p}}</a>
+        <a href="{{ url_for('admin_page', page=p, year=request.args.get('year'), category=request.args.get('category'), school=request.args.get('school'), dept=request.args.get('dept'), name=request.args.get('name')) }}" 
+           class="{{ 'active' if p == current_page else '' }}">{{p}}</a>
         {% endfor %}
     </div>
 </div>
@@ -334,6 +333,7 @@
     }
 
     function addNewLecturer() {
+        // [수정] 수수료, 보조금 및 수당 항목 컬럼명 백엔드와 일치화
         const payload = {
             계약구분: document.getElementById('new-category').value,
             수탁학교명: document.getElementById('new-school').value,
@@ -342,6 +342,9 @@
             주민번호: document.getElementById('new-ssn').value,
             수수료: document.getElementById('new-fee').value || 0,
             보조금: document.getElementById('new-subsidy').value || 0,
+            경력수당: document.getElementById('new-career').value || 0,
+            직책수당: document.getElementById('new-position').value || 0,
+            기타: document.getElementById('new-etc').value || 0,
             근무시간: document.getElementById('new-work-time').value,
             계약기간: document.getElementById('new-period').value
         };
@@ -356,7 +359,6 @@
         .then(res => res.json()).then(data => { if (data.status === 'success') location.reload(); });
     }
 
-// 기존 script 태그 하단에 추가
 function uploadExcelFile() {
     const fileInput = document.getElementById('excelFile');
     if (!fileInput.files[0]) return;
