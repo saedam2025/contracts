@@ -125,13 +125,11 @@
             border-bottom: 1px solid #ccc;
         }
 
-
-#sig-canvas {
-    /* 모바일 터치 시 브라우저 스크롤과 서명 동작의 충돌을 방지하는 핵심 속성 */
-    touch-action: none; 
-    -webkit-user-select: none;
-    user-select: none;
-}
+        #sig-canvas {
+            touch-action: none; 
+            -webkit-user-select: none;
+            user-select: none;
+        }
     </style>
 </head>
 <body>
@@ -275,54 +273,68 @@
     let drawing = false;
     let isSigned = false;
 
+    // 캔버스 사이즈 조절
     function resizeCanvas() {
         canvas.width = canvas.parentElement.clientWidth;
         canvas.height = 200;
+        // 리사이즈 후 컨텍스트 설정 초기화 방지
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = '#1a202c';
     }
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
+    // 좌표 계산 (모바일 터치 대응 정밀화)
     function getPos(e) {
         const rect = canvas.getBoundingClientRect();
-        const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-        const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+        let clientX, clientY;
+
+        if (e.touches && e.touches.length > 0) {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        } else {
+            clientX = e.clientX;
+            clientY = e.clientY;
+        }
+
         return {
             x: clientX - rect.left,
             y: clientY - rect.top
         };
     }
 
-    function start(e) { 
-        drawing = true; 
+    function start(e) {
+        drawing = true;
         isSigned = true;
-        ctx.beginPath(); 
-        const p = getPos(e); 
-        ctx.moveTo(p.x, p.y); 
+        ctx.beginPath();
+        const p = getPos(e);
+        ctx.moveTo(p.x, p.y);
     }
 
-    function draw(e) { 
-        if(!drawing) return; 
+    function draw(e) {
+        if (!drawing) return;
         
-        // [수정] 모바일에서 스크롤 간섭 방지 (끊김 해결)
-        if (e.cancelable) e.preventDefault(); 
+        // [수정] 모바일에서 스크롤 간섭 방지 (끊김 해결 핵심)
+        if (e.cancelable) e.preventDefault();
         
-        const p = getPos(e); 
-        ctx.lineWidth = 3;           
-        ctx.lineCap = 'round';       
-        ctx.lineJoin = 'round';      
-        ctx.strokeStyle = '#1a202c'; 
-        ctx.lineTo(p.x, p.y); 
-        ctx.stroke(); 
+        const p = getPos(e);
+        ctx.lineTo(p.x, p.y);
+        ctx.stroke();
     }
 
-    function stop() { drawing = false; }
+    function stop() {
+        drawing = false;
+        ctx.closePath();
+    }
 
     // 마우스 이벤트
     canvas.addEventListener('mousedown', start);
     canvas.addEventListener('mousemove', draw);
     window.addEventListener('mouseup', stop);
 
-    // [수정] 터치 이벤트 (끊김 방지를 위해 {passive: false} 적용)
+    // [수정] 터치 이벤트 (끊김 방지를 위해 {passive: false} 적용 및 이벤트 세분화)
     canvas.addEventListener('touchstart', function(e) {
         start(e);
     }, { passive: false });
@@ -332,6 +344,9 @@
     }, { passive: false });
 
     canvas.addEventListener('touchend', stop, { passive: false });
+    
+    // 캔버스 밖으로 나갔을 때 처리
+    canvas.addEventListener('touchcancel', stop, { passive: false });
 
     document.getElementById('clear-btn').addEventListener('click', () => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
