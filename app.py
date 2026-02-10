@@ -36,7 +36,7 @@ KST = timezone(timedelta(hours=9))
 def init_excel():
     """엑셀 초기화 (모든 읽기 작업에 dtype=str 적용)"""
     columns = [
-        '계약구분', '수탁학교명', '부서명', '성명', '주민번호', '수수료', '보조금', '경력수당', '직책수당', '기타', '근무시간', '계약기간', 'email', '연락처', '거주지', '계약완료일시', '연도', '파일명'
+        '계약구분', '수탁학교명', '부서명', '성명', '주민번호', '수수료', '보조금', '경력수당', '직책수당', '기타', '근무시간', '계약기간', 'email', '연락처', '거주지', '계약완료일시', '연도', '파일명', 'IP'
     ]
     if not os.path.exists(EXCEL_FILE):
         df = pd.DataFrame(columns=columns)
@@ -214,7 +214,12 @@ def save_contract():
         # [디자인 복구] PDF 출력 여백 원복
         pdfkit.from_string(html_content, pdf_path, configuration=PDF_CONFIG, options={'page-size': 'A4', 'encoding': "UTF-8", 'javascript-delay': '1000', 'enable-local-file-access': None, 'margin-top': '25', 'margin-bottom': '25', 'margin-left': '20', 'margin-right': '20'})
         
-        df.at[idx, '연락처'], df.at[idx, 'email'], df.at[idx, '거주지'], df.at[idx, '계약완료일시'], df.at[idx, '파일명'] = str(data.get('phone', '')), str(data.get('email', '')), str(data.get('address', '')), now_dt.strftime('%Y-%m-%d %H:%M:%S'), filename
+        # 실제 IP 주소 가져오기 (프록시 대응)
+        user_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+        if user_ip and ',' in user_ip:
+            user_ip = user_ip.split(',')[0].strip()
+
+        df.at[idx, '연락처'], df.at[idx, 'email'], df.at[idx, '거주지'], df.at[idx, '계약완료일시'], df.at[idx, '파일명'], df.at[idx, 'IP'] = str(data.get('phone', '')), str(data.get('email', '')), str(data.get('address', '')), now_dt.strftime('%Y-%m-%d %H:%M:%S'), filename, user_ip
         df.to_excel(EXCEL_FILE, index=False)
         
         try:
@@ -256,10 +261,11 @@ def admin_page():
         depts = sorted([d for d in full_df['부서명'].unique() if d != ""])
 
         total_pages = (len(df) // per_page) + (1 if len(df) % per_page > 0 else 0)
+        total_count = len(df) # 전체 데이터 개수
         items = df.iloc[(page-1)*per_page : page*per_page].to_dict('records')
         for i, item in enumerate(items):
             item['orig_idx'] = df.index[(page-1)*per_page + i]
-        return render_template('c_admin_.html', items=items, total_pages=total_pages, current_page=page, years=years, schools=schools, depts=depts)
+        return render_template('c_admin_.html', items=items, total_pages=total_pages, total_count=total_count, current_page=page, years=years, schools=schools, depts=depts)
     except Exception as e: return f"에러: {str(e)}"
 
 @app.route('/c_admin/upload_excel', methods=['POST'])
@@ -282,9 +288,22 @@ def admin_add():
         new_data = request.json
         df = pd.read_excel(EXCEL_FILE, dtype=str)
         new_row = {
-            '계약구분': new_data.get('계약구분', '방과후강사'), '수탁학교명': new_data.get('수탁학교명'),
-            '부서명': new_data.get('부서명'), '성명': new_data.get('성명'), '주민번호': new_data.get('주민번호'),
-            '연도': str(datetime.now(KST).year), '계약완료일시': "", '파일명': ""
+            '계약구분': new_data.get('계약구분', '방과후강사'), 
+            '수탁학교명': new_data.get('수탁학교명'),
+            '부서명': new_data.get('부서명'), 
+            '성명': new_data.get('성명'), 
+            '주민번호': new_data.get('주민번호'),
+            '수수료': str(new_data.get('수수료', '0')),
+            '보조금': str(new_data.get('보조금', '0')),
+            '경력수당': str(new_data.get('경력수당', '0')),
+            '직책수당': str(new_data.get('직책수당', '0')),
+            '기타': str(new_data.get('기타', '0')),
+            '근무시간': new_data.get('근무시간', ''),
+            '계약기간': new_data.get('계약기간', ''),
+            '연도': str(datetime.now(KST).year), 
+            '계약완료일시': "", 
+            '파일명': "",
+            'IP': ""
         }
         df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
         df.to_excel(EXCEL_FILE, index=False)
@@ -318,7 +337,7 @@ def download_pdf(idx):
 @app.route('/c_admin/logout')
 def admin_logout():
     session.pop('admin_logged_in', None)
-    return redirect(url_for('login'))
+    return redirect(url_for('admin_page'))
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
