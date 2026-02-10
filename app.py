@@ -28,8 +28,8 @@ if not os.path.exists(CONTRACTS_DIR):
 WKHTMLTOPDF_PATH = '/usr/bin/wkhtmltopdf'
 PDF_CONFIG = pdfkit.configuration(wkhtmltopdf=WKHTMLTOPDF_PATH)
 
-SENDER_EMAIL = 'lunch9797@gmail.com' 
-SENDER_PASSWORD = 'txnbofpijgysjpfq' 
+SENDER_EMAIL = os.environ.get('MAIL_USERNAME')
+SENDER_PASSWORD = os.environ.get('MAIL_PASSWORD')
 ADMIN_PASSWORD = 'school97$$'
 KST = timezone(timedelta(hours=9))
 
