@@ -132,14 +132,14 @@ Article 9. Contract Period and Renewal
         각 별첨에 따른다.
      ② 수수료는 실제로 수행된 수업 및 위탁업무를 기준으로 산정하며, 수업이 진행되지 않은 날 또는 위탁 업무가 수행되지 
        않은 기간에 대해서는 수수료를 지급하지 않는다.
-     ③ 수수료는 월 단위로 산정하여, 강의를 마친 월의 다음 달 25일 18시 이전에 지급한다.
+     ③ 수수료는 월 단위로 산정하여, 강의를 마친 월의 다음 달 22일 18시 이전에 지급한다.
      ④ 지급일이 공휴일 또는 연휴인 경우에는, 그 다음 첫 번째 평일 18시 이전에 지급한다.
 Article 10. Payment
     ① The method of fee calculation, payment standards, and fee amounts may vary by school and shall be specified 
        in the applicable Appendix.
     ② Fees shall be calculated based on classes and entrusted services actually performed. 
       No fees shall be payable for days on which classes are not conducted or entrusted services are not performed.
-    ③ Fees shall be calculated on a monthly basis and paid by 6:00 p.m. on the 25th day of the month following 
+    ③ Fees shall be calculated on a monthly basis and paid by 6:00 p.m. on the 22th day of the month following 
      the month in which the services were rendered.
    ④ If the payment date falls on a public holiday or consecutive holidays, payment shall be made by 6:00 p.m. 
      on the next business day.
