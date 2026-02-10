@@ -208,16 +208,45 @@ def save_contract():
                     return c.replace('\n', '<br>').replace('<br><table', '<table').replace('</table><br>', '</table>')
             return ""
         content1, content2 = get_cleaned_content(f"{contract_type}.txt"), get_cleaned_content(f"{contract_type}2.txt")
+        
+        # [구글 폰트 적용 버전 HTML]
         html_content = f"""
-        <html><head><meta charset="UTF-8"><style>@page {{ size: A4; margin: 25mm 20mm; }} body {{ margin: 0; padding: 0; font-family: 'Malgun Gothic', sans-serif; background-color: #fff; color: #000; }} .document-wrapper {{ position: relative; z-index: 1; }} .title {{ text-align: center; font-size: 28px; font-weight: bold; margin-bottom: 35px; text-decoration: underline; }} .info-table {{ width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 15px; border: none; }} .info-table th, .info-table td {{ border: none; padding: 8px 5px; text-align: left; }} .info-table th {{ font-weight: bold; width: 15%; color: #333; }} .info-table td {{ width: 35%; border-bottom: 1px solid #eee; }} .terms-area {{ text-align: justify; line-height: 1.6; font-size: 14.5px; margin-top: 10px; word-break: keep-all; }} .signature-area {{ margin-top: 50px; position: relative; font-size: 16px; }} .sign-img {{ width: 130px; border-bottom: 1px solid #000; }}</style></head>
+        <html><head><meta charset="UTF-8">
+        <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+        <style>
+            @page {{ size: A4; margin: 25mm 20mm; }} 
+            body {{ margin: 0; padding: 0; font-family: 'Noto Sans KR', sans-serif; background-color: #fff; color: #000; }} 
+            .document-wrapper {{ position: relative; z-index: 1; }} 
+            .title {{ text-align: center; font-size: 28px; font-weight: bold; margin-bottom: 35px; text-decoration: underline; }} 
+            .info-table {{ width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 15px; border: none; }} 
+            .info-table th, .info-table td {{ border: none; padding: 8px 5px; text-align: left; }} 
+            .info-table th {{ font-weight: bold; width: 15%; color: #333; }} 
+            .info-table td {{ width: 35%; border-bottom: 1px solid #eee; }} 
+            .terms-area {{ text-align: justify; line-height: 1.6; font-size: 14.5px; margin-top: 10px; word-break: keep-all; }} 
+            .signature-area {{ margin-top: 50px; position: relative; font-size: 16px; }} 
+            .sign-img {{ width: 130px; border-bottom: 1px solid #000; }}
+        </style></head>
         <body><div class="document-wrapper"><div class="title"><h1 style="text-align:center; line-height:1.4; margin-bottom:30px;"><span style="display:block; font-family:'Noto Sans KR', sans-serif; font-weight:900; font-size:26px; letter-spacing:-0.03em; color:#222;">{doc_title}</span></h1></div><br><table class="info-table"><tr><th>{school_label}</th><td>{final_school_name}</td><th>{dept_label}</th><td>{data.get('dept', '')}</td></tr><tr><th>성명 :</th><td>{data.get('name', '')}</td><th>주민번호 :</th><td>{data.get('ssn', session.get('user_ssn', ''))}</td></tr><tr><th>연락처 :</th><td>{data.get('phone', '')}</td><th>이메일 :</th><td>{data.get('email', '')}</td></tr><tr><th>거주지 :</th><td colspan="3">{data.get('address', '')}</td></tr></table><br><div class="terms-area">{content1}</div>{signature_section}{"<div style='page-break-before: always;'></div>" if content2.strip() else ""}{f"<div class='terms-area' style='margin-top:10mm;'>{content2}</div>{signature_section}" if content2.strip() else ""}</div></body></html>
         """
+        
         safe_school, safe_name = str(final_school_name).replace(' ', ''), str(data['name']).replace(' ', '')
         filename = f"{contract_type}_{safe_school}_{safe_name}_{now_dt.strftime('%Y%m%d_%H%M%S')}.pdf"
         pdf_path = os.path.abspath(os.path.join('contracts', filename))
         
-        # [수정] 리눅스 환경에 맞는 pdfkit 옵션
-        pdfkit.from_string(html_content, pdf_path, configuration=PDF_CONFIG, options={'page-size': 'A4', 'encoding': "UTF-8", 'enable-local-file-access': None, 'margin-top': '25', 'margin-bottom': '25', 'margin-left': '20', 'margin-right': '20'})
+        # [수정] 폰트 로딩 대기를 위한 javascript-delay 옵션 추가
+        pdf_options = {
+            'page-size': 'A4',
+            'encoding': "UTF-8",
+            'enable-local-file-access': None,
+            'margin-top': '25',
+            'margin-bottom': '25',
+            'margin-left': '20',
+            'margin-right': '20',
+            'javascript-delay': '1000', # 폰트 다운로드 시간 확보 (1초)
+            'no-stop-slow-scripts': None
+        }
+        
+        pdfkit.from_string(html_content, pdf_path, configuration=PDF_CONFIG, options=pdf_options)
         
         df.at[idx, '연도'] = now_dt.year
         df.at[idx, '연락처'], df.at[idx, 'email'], df.at[idx, '거주지'], df.at[idx, '계약완료일시'], df.at[idx, '파일명'] = str(data.get('phone', '')), str(data.get('email', '')), str(data.get('address', '')), now_dt.strftime('%Y-%m-%d %H:%M:%S'), filename
