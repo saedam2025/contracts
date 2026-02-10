@@ -216,10 +216,15 @@
             </select>
         </div>
 
-        <div class="filter-group">
-            <label>부서명(과목)</label>
-            <input type="text" name="dept" placeholder="부서/과목명" value="{{ request.args.get('dept', '') }}">
-        </div>
+<div class="filter-group">
+    <label>부서명/직책</label>
+    <select name="dept">
+        <option value="">부서명/직책</option>
+        {% for d in depts %}
+        <option value="{{d}}" {% if request.args.get('dept') == d %}selected{% endif %}>{{d}}</option>
+        {% endfor %}
+    </select>
+</div>
 
         <div class="filter-group">
             <label>성명</label>
