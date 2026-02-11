@@ -260,6 +260,7 @@ def save_contract():
     except Exception as e: return jsonify({"status": "error", "message": f"오류 발생: {str(e)}"}), 500
 
 # --- [관리자 기능 로직] ---
+# --- [관리자 기능 로직] ---
 @app.route('/c_admin', methods=['GET', 'POST'])
 def admin_page():
     if request.method == 'POST':
@@ -276,7 +277,21 @@ def admin_page():
     s_year, s_cat, s_school, s_dept, s_name = request.args.get('year', ''), request.args.get('category', ''), request.args.get('school', ''), request.args.get('dept', ''), request.args.get('name', '')
 
     try:
+        # 전체 데이터 로드
         full_df = pd.read_excel(EXCEL_FILE, dtype=str).fillna("")
+        
+        # --- [대시보드 통계 계산 시작] ---
+        # 1. 총 계약 대상 수
+        total_count = len(full_df)
+        # 2. 계약 완료 수 (계약완료일시가 비어있지 않은 데이터)
+        completed_count = len(full_df[full_df['계약완료일시'].str.strip() != ""])
+        # 3. 미작성 대기 수
+        pending_count = total_count - completed_count
+        # 4. 전체 완료율 계산
+        completion_rate = round((completed_count / total_count * 100), 1) if total_count > 0 else 0
+        # --- [대시보드 통계 계산 끝] ---
+
+        # 화면 출력을 위한 데이터 처리 (필터링 및 정렬)
         df = full_df.copy().sort_index(ascending=False)
         if s_year: df = df[df['연도'].astype(str).str.contains(s_year)]
         if s_cat: df = df[df['계약구분'] == s_cat]
@@ -284,18 +299,34 @@ def admin_page():
         if s_dept: df = df[df['부서명'] == s_dept]
         if s_name: df = df[df['성명'].str.contains(s_name)]
 
+        # 필터링용 드롭다운 목록
         years = sorted([str(y) for y in full_df['연도'].unique() if y != ""], reverse=True)
         schools = sorted([s for s in full_df['수탁학교명'].unique() if s != ""])
         depts = sorted([d for d in full_df['부서명'].unique() if d != ""])
 
+        # 페이징 처리
         total_pages = (len(df) // per_page) + (1 if len(df) % per_page > 0 else 0)
-        total_count = len(df)
+        filtered_count = len(df) # 필터링된 결과 건수
         items = df.iloc[(page-1)*per_page : page*per_page].to_dict('records')
+        
+        # 원본 인덱스 유지
         for i, item in enumerate(items):
             item['orig_idx'] = df.index[(page-1)*per_page + i]
-        return render_template('c_admin_.html', items=items, total_pages=total_pages, total_count=total_count, current_page=page, years=years, schools=schools, depts=depts)
-    except Exception as e: return f"에러: {str(e)}"
 
+        return render_template('c_admin_.html', 
+                               items=items, 
+                               total_pages=total_pages, 
+                               total_count=total_count,       # 전체 대상
+                               completed_count=completed_count, # 완료 건수
+                               pending_count=pending_count,     # 대기 건수
+                               completion_rate=completion_rate, # 완료율
+                               filtered_count=filtered_count,   # 검색 결과 수
+                               current_page=page, 
+                               years=years, 
+                               schools=schools, 
+                               depts=depts)
+    except Exception as e: 
+        return f"에러: {str(e)}"
 @app.route('/c_admin/upload_excel', methods=['POST'])
 def upload_excel():
     if 'excel_file' not in request.files: return jsonify({'status': 'error', 'message': '파일 없음'}), 400
