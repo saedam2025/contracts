@@ -13,7 +13,7 @@
             --saedam-navy: #002c63;
             --saedam-green: #10b981;
             --saedam-red: #ef4444;
-            --bg-light: #f8fafc;
+            --bg-dark: #001a3d; /* 더 깊은 네이비 배경색 */
             --border-color: #e2e8f0;
             --text-main: #1e293b;
             --text-muted: #64748b;
@@ -21,8 +21,8 @@
 
         body {
             font-family: 'Pretendard', sans-serif;
-            background-color: var(--bg-light);
-            margin: 0; padding: 30px 0; color: var(--text-main);
+            background-color: var(--bg-dark); /* 배경을 짙은 네이비로 설정 */
+            margin: 0; padding: 40px 0; color: var(--text-main);
             line-height: 1.5;
         }
 
@@ -30,141 +30,105 @@
             max-width: 1300px; 
             margin: 0 auto; 
             background: #fff; 
-            padding: 24px 32px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); 
-            border-radius: 12px;
+            padding: 30px 40px;
+            /* 짙은 배경에서 더 잘 보이도록 입체감 있는 그림자 적용 */
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3); 
+            border-radius: 16px;
         }
 
         /* Header Section */
         .admin-header {
             display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border-color);
+            margin-bottom: 25px; padding-bottom: 18px; border-bottom: 1px solid var(--border-color);
         }
         .admin-header h2 { 
-            margin: 0; color: var(--saedam-navy); font-size: 1.4rem; font-weight: 800; 
+            margin: 0; color: var(--saedam-navy); font-size: 1.6rem; font-weight: 800; 
             letter-spacing: -0.025em;
         }
 
         .btn-group { display: flex; gap: 8px; }
         
         button, .btn-add-toggle {
-            padding: 8px 16px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; 
+            padding: 10px 18px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; 
             border: none; cursor: pointer; transition: all 0.2s;
             display: inline-flex; align-items: center; gap: 6px;
         }
         .btn-add-toggle { background: var(--saedam-green); color: white; }
-        .btn-add-toggle:hover { background: #059669; transform: translateY(-1px); }
+        .btn-add-toggle:hover { background: #059669; transform: translateY(-2px); }
         .btn-excel { background: #f1f5f9; color: var(--text-main); border: 1px solid var(--border-color); }
         .btn-excel:hover { background: #e2e8f0; }
 
-        /* --- Sharp & Light Dashboard Bar --- */
+        /* Dashboard */
         .dashboard-slim-bar {
-            display: flex;
-            align-items: center;
-            background: #ffffff;
-            border: 1px solid var(--border-color);
-            border-left: 5px solid var(--saedam-navy); /* 시그니처 포인트 라인 */
-            border-radius: 10px;
-            padding: 18px 0;
-            margin-bottom: 25px;
-            color: var(--text-main);
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+            display: flex; align-items: center; background: #ffffff; border: 1px solid var(--border-color);
+            border-left: 6px solid var(--saedam-blue); border-radius: 12px; padding: 20px 0;
+            margin-bottom: 30px; color: var(--text-main); box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
         }
-        .stat-item {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            border-right: 1px solid var(--border-color);
-        }
+        .stat-item { flex: 1; display: flex; flex-direction: column; align-items: center; border-right: 1px solid var(--border-color); }
         .stat-item:last-child { border-right: none; }
-        .stat-label { 
-            font-size: 0.75rem; 
-            font-weight: 700; 
-            color: var(--text-muted); 
-            margin-bottom: 4px; 
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-        .stat-value { font-size: 1.4rem; font-weight: 800; color: var(--saedam-navy); }
+        .stat-label { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+        .stat-value { font-size: 1.6rem; font-weight: 800; color: var(--saedam-navy); }
         .stat-value.green { color: var(--saedam-green); }
         .stat-value.red { color: var(--saedam-red); }
-        
-        .progress-wrapper { 
-            width: 85%; 
-            height: 6px; 
-            background: #f1f5f9; 
-            border-radius: 10px; 
-            margin-top: 8px; 
-            overflow: hidden; 
-            border: 1px solid #e2e8f0;
-        }
-        .progress-fill { 
-            height: 100%; 
-            background: linear-gradient(90deg, var(--saedam-blue), var(--saedam-green)); 
-            border-radius: 10px;
-            transition: width 1s ease-in-out;
-        }
+        .progress-wrapper { width: 85%; height: 8px; background: #f1f5f9; border-radius: 10px; margin-top: 10px; overflow: hidden; border: 1px solid #e2e8f0; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, var(--saedam-blue), var(--saedam-green)); border-radius: 10px; transition: width 1s ease-in-out; }
 
         /* Input Form */
         .input-section { 
-            background: #f8fafc; border: 1px solid var(--saedam-blue); border-radius: 10px; 
-            padding: 24px; margin-bottom: 25px; display: none;
-            box-shadow: 0 4px 12px rgba(0,78,162,0.05);
+            background: #f8fafc; border: 1px solid var(--saedam-blue); border-radius: 12px; 
+            padding: 28px; margin-bottom: 30px; display: none;
+            box-shadow: 0 4px 12px rgba(0,78,162,0.08);
         }
-        .input-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 15px; }
-        .input-group { display: flex; flex-direction: column; gap: 4px; }
-        .input-group label { font-size: 0.75rem; font-weight: 700; color: var(--saedam-navy); }
+        .input-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
+        .input-group { display: flex; flex-direction: column; gap: 6px; }
+        .input-group label { font-size: 0.8rem; font-weight: 700; color: var(--saedam-navy); }
         .input-group input, .input-group select { 
-            padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem;
-            background: #fff;
+            padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.9rem; background: #fff;
         }
 
         /* Filter Bar */
         .filter-bar { 
-            background: #fff; padding: 15px; margin-bottom: 20px; border-radius: 8px;
-            border: 1px solid var(--border-color); display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end;
+            background: #fff; padding: 18px; margin-bottom: 25px; border-radius: 12px;
+            border: 1px solid var(--border-color); display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;
         }
-        .filter-group { display: flex; flex-direction: column; gap: 4px; }
-        .filter-group label { font-size: 0.7rem; font-weight: 700; color: var(--text-muted); }
-        .filter-bar select, .filter-bar input { 
-            padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.8rem; min-width: 110px;
-        }
+        .filter-group { display: flex; flex-direction: column; gap: 6px; }
+        .filter-group label { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); }
+        .filter-bar select, .filter-bar input { padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; min-width: 120px; }
 
-        /* Table Style */
-        .table-wrapper { border-radius: 8px; border: 1px solid var(--border-color); overflow: hidden; background: #fff; }
+        /* Table */
+        .table-wrapper { border-radius: 12px; border: 1px solid var(--border-color); overflow: hidden; background: #fff; }
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        th { background: #f8fafc; padding: 12px 8px; font-size: 0.75rem; color: var(--text-muted); border-bottom: 1px solid var(--border-color); }
-        td { padding: 12px 8px; font-size: 0.8rem; border-bottom: 1px solid var(--border-color); text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        
+        th { background: #f8fafc; padding: 14px 10px; font-size: 0.8rem; color: var(--text-muted); border-bottom: 1px solid var(--border-color); text-transform: uppercase; }
+        td { padding: 14px 10px; font-size: 0.85rem; border-bottom: 1px solid var(--border-color); text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         tbody tr:hover:not(.detail-row) { background-color: #f8fafc; }
         .name-click { color: var(--saedam-blue); font-weight: 700; cursor: pointer; text-decoration: underline; }
-        .status-off { display: inline-block; padding: 2px 8px; background: #fee2e2; color: var(--saedam-red); border-radius: 4px; font-size: 0.7rem; font-weight: 700; }
-        .pdf-link { color: var(--saedam-blue); font-weight: 600; font-size: 0.75rem; background: #eef2ff; padding: 3px 8px; border-radius: 4px; text-decoration: none; }
+        .status-off { display: inline-block; padding: 3px 10px; background: #fee2e2; color: var(--saedam-red); border-radius: 6px; font-size: 0.75rem; font-weight: 700; }
+        .pdf-link { color: var(--saedam-blue); font-weight: 600; font-size: 0.8rem; background: #eef2ff; padding: 4px 10px; border-radius: 6px; text-decoration: none; border: 1px solid #d0daff; }
+        .pdf-link:hover { background: #d0daff; }
 
-        .detail-row { display: none; background-color: #f9fafb; }
-        .detail-content-box { padding: 20px; border-bottom: 1px solid var(--border-color); }
-        .inner-detail-table { width: 100%; border: 1px solid var(--border-color); border-radius: 6px; border-collapse: separate; border-spacing: 0; font-size: 0.8rem; }
-        .inner-detail-table th { background: #f1f5f9; text-align: left; padding: 10px 15px; border-right: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); width: 15%; color: var(--text-muted); }
-        .inner-detail-table td { text-align: left; padding: 10px 15px; background: #fff; border-bottom: 1px solid var(--border-color); font-weight: 600; color: var(--text-main); }
+        .detail-row { display: none; background-color: #f9fbff; }
+        .detail-content-box { padding: 25px; border-bottom: 1px solid var(--border-color); }
+        .inner-detail-table { width: 100%; border: 1px solid var(--border-color); border-radius: 8px; border-collapse: separate; border-spacing: 0; font-size: 0.85rem; }
+        .inner-detail-table th { background: #f1f5f9; text-align: left; padding: 12px 18px; border-right: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); width: 18%; color: var(--text-muted); }
+        .inner-detail-table td { text-align: left; padding: 12px 18px; background: #fff; border-bottom: 1px solid var(--border-color); font-weight: 600; color: var(--text-main); }
 
-        .pagination { margin-top: 25px; display: flex; justify-content: center; gap: 5px; }
-        .pagination a { padding: 6px 12px; text-decoration: none; color: var(--text-muted); border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.85rem; }
+        .pagination { margin-top: 30px; display: flex; justify-content: center; gap: 8px; }
+        .pagination a { padding: 8px 16px; text-decoration: none; color: var(--text-muted); border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.9rem; background: #fff; }
         .pagination a.active { background: var(--saedam-navy); color: #fff; border-color: var(--saedam-navy); font-weight: bold; }
 
-        .col-chk { width: 40px; }
-        .col-num { width: 60px; }
-        .col-year { width: 70px; }
-        .col-cat { width: 100px; }
-        .col-school { width: 150px; }
-        .col-dept { width: 120px; }
-        .col-name { width: 90px; }
-        .col-ssn { width: 120px; }
-        .col-date { width: 160px; }
+        .col-chk { width: 45px; }
+        .col-num { width: 65px; }
+        .col-year { width: 75px; }
+        .col-cat { width: 110px; }
+        .col-school { width: 160px; }
+        .col-dept { width: 130px; }
+        .col-name { width: 100px; }
+        .col-ssn { width: 130px; }
+        .col-date { width: 170px; }
     </style>
 
 <script>
-    // 1. 보안 설정
+    // 보안 설정
     document.addEventListener('contextmenu', e => { e.preventDefault(); alert('보안 정책상 우클릭이 제한됩니다.'); });
     document.onkeydown = e => {
         if (e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74)) || (e.ctrlKey && (e.keyCode == 85 || e.keyCode == 83))) return false;
@@ -184,22 +148,46 @@
     }
 
     function addNewLecturer() {
-        const payload = {
-            계약구분: document.getElementById('new-category').value,
-            수탁학교명: document.getElementById('new-school').value,
-            부서명: document.getElementById('new-dept').value,
-            성명: document.getElementById('new-name').value,
-            주민번호: document.getElementById('new-ssn').value,
-            수수료: document.getElementById('new-fee').value || 0,
-            보조금: document.getElementById('new-subsidy').value || 0,
-            경력수당: document.getElementById('new-career').value || 0,
-            직책수당: document.getElementById('new-position').value || 0,
-            기타: document.getElementById('new-etc').value || 0,
-            근무시간: document.getElementById('new-work-time').value,
-            계약기간: document.getElementById('new-period').value
+        const val = (id) => {
+            const el = document.getElementById(id);
+            return el ? el.value : '';
         };
-        fetch('/c_admin/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-        .then(res => res.json()).then(data => { if (data.status === 'success') location.reload(); });
+
+        const payload = {
+            계약구분: val('new-category'),
+            수탁학교명: val('new-school'),
+            부서명: val('new-dept'),
+            성명: val('new-name'),
+            주민번호: val('new-ssn'),
+            수수료: val('new-fee') || 0,
+            보조금: val('new-subsidy') || 0,
+            경력수당: val('new-career') || 0,
+            직책수당: val('new-position') || 0,
+            기타: val('new-etc') || 0,
+            근무시간: val('new-work-time'),
+            계약기간: val('new-period')
+        };
+
+        if(!payload.성명 || !payload.수탁학교명) {
+            alert("학교명과 성명은 필수 입력 사항입니다.");
+            return;
+        }
+
+        fetch('/c_admin/add', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify(payload) 
+        })
+        .then(res => res.json())
+        .then(data => { 
+            if (data.status === 'success') {
+                alert("저장되었습니다.");
+                location.reload(); 
+            } else {
+                alert("오류 발생: " + data.message);
+            }
+        })
+        .catch(err => alert("서버 통신 오류가 발생했습니다."));
     }
 
     function deleteSelected() {
@@ -233,7 +221,7 @@
 
 <div class="admin-container">
     <div class="admin-header">
-        <h2>📝 새담 인재 계약관리 시스템</h2>
+        <h2>📝 새담 계약관리 시스템</h2>
         <div class="btn-group">
             <input type="file" id="excelFile" accept=".xlsx, .xls" style="display: none;" onchange="uploadExcelFile()">
             <button type="button" class="btn-excel" onclick="document.getElementById('excelFile').click()">📂 엑셀 업로드</button>
@@ -263,7 +251,7 @@
     </div>
 
     <div id="inputForm" class="input-section">
-        <h3 style="margin-top:0; margin-bottom:15px; font-size: 0.95rem; color: var(--saedam-navy);">🆕 새로운 계약 정보 입력</h3>
+        <h3 style="margin-top:0; margin-bottom:18px; font-size: 1.1rem; color: var(--saedam-navy);">🆕 새로운 계약 정보 등록</h3>
         <div class="input-grid">
             <div class="input-group">
                 <label>계약구분</label>
@@ -280,14 +268,18 @@
                 </select>
             </div>
             <div class="input-group"><label>수탁학교명</label><input type="text" id="new-school" placeholder="학교명"></div>
-            <div class="input-group"><label>부서명</label><input type="text" id="new-dept" placeholder="과목/직책"></div>
+            <div class="input-group"><label>부서명/직책</label><input type="text" id="new-dept" placeholder="과목/직책"></div>
             <div class="input-group"><label>강사명</label><input type="text" id="new-name" placeholder="성함"></div>
             <div class="input-group"><label>주민번호</label><input type="text" id="new-ssn" placeholder="주민번호"></div>
-            <div class="input-group"><label>수수료</label><input type="text" id="new-fee" value="0"></div>
-            <div class="input-group"><label>보조금</label><input type="text" id="new-subsidy" value="0"></div>
-            <div class="input-group"><label>경력수당</label><input type="text" id="new-career" value="0"></div>
+            <div class="input-group"><label>수수료</label><input type="number" id="new-fee" value="0"></div>
+            <div class="input-group"><label>보조금</label><input type="number" id="new-subsidy" value="0"></div>
+            <div class="input-group"><label>경력수당</label><input type="number" id="new-career" value="0"></div>
+            <div class="input-group"><label>직책수당</label><input type="number" id="new-position" value="0"></div>
+            <div class="input-group"><label>기타수당</label><input type="number" id="new-etc" value="0"></div>
+            <div class="input-group"><label>근무시간</label><input type="text" id="new-work-time" placeholder="예: 주 5일 14:00~16:00"></div>
+            <div class="input-group"><label>계약기간</label><input type="text" id="new-period" placeholder="예: 2026.03.01~2027.02.28"></div>
         </div>
-        <button type="button" style="background:var(--saedam-navy); color:white; border:none; width:100%; height:38px; border-radius:6px; cursor:pointer; font-weight:700; font-size: 0.85rem;" onclick="addNewLecturer()">계약 정보 저장하기</button>
+        <button type="button" style="background:var(--saedam-navy); color:white; border:none; width:100%; height:48px; border-radius:10px; cursor:pointer; font-weight:700; font-size: 1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" onclick="addNewLecturer()">계약 정보 저장하기</button>
     </div>
 
     <form class="filter-bar" method="GET" action="/c_admin">
@@ -319,12 +311,21 @@
             </select>
         </div>
         <div class="filter-group">
+            <label>부서명/직책</label>
+            <select name="dept">
+                <option value="">전체</option>
+                {% for d in depts %}
+                <option value="{{d}}" {% if request.args.get('dept') == d %}selected{% endif %}>{{d}}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="filter-group">
             <label>성명</label>
             <input type="text" name="name" placeholder="성명 입력" value="{{ request.args.get('name', '') }}">
         </div>
         <div style="display: flex; gap: 6px;">
-            <button type="submit" style="background: var(--saedam-blue); color: white;">조회</button>
-            <button type="button" onclick="location.href='/c_admin'" style="background: #64748b; color: white;">초기화</button>
+            <button type="submit" style="background: var(--saedam-blue); color: white; padding: 0 20px;">조회</button>
+            <button type="button" onclick="location.href='/c_admin'" style="background: #64748b; color: white; padding: 0 15px;">초기화</button>
         </div>
         <button type="button" onclick="deleteSelected()" style="background:var(--saedam-red); color: white; margin-left: auto;">선택 삭제</button>
     </form>
@@ -364,7 +365,7 @@
                 <tr id="detail-{{ loop.index }}" class="detail-row">
                     <td colspan="9">
                         <div class="detail-content-box">
-                            <h4 style="margin-top:0; color:var(--saedam-blue); font-size: 0.85rem;">🔍 {{ item.계약구분 }} {{ item.성명 }} 상세 데이터</h4>
+                            <h4 style="margin-top:0; color:var(--saedam-blue); font-size: 0.95rem;">🔍 {{ item.계약구분 }} {{ item.성명 }} 상세 데이터</h4>
                             <table class="inner-detail-table">
                                 <tr>
                                     <th>수수료</th><td>{{ item.수수료 or '0' }}</td>
