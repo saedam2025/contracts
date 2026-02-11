@@ -216,6 +216,44 @@
             text-align: center;
         }
     </style>
+
+<script>
+    // 1. 우클릭 방지
+    document.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        alert('보안 정책에 따라 우클릭을 사용할 수 없습니다.');
+    });
+
+    // 2. 단축키 차단 (F12, 소스보기, 개발자도구 등)
+    document.onkeydown = function(e) {
+        // F12 차단
+        if (e.keyCode == 123) {
+            return false;
+        }
+        // Ctrl + Shift + I (개발자 도구) 차단
+        if (e.ctrlKey && e.shiftKey && e.keyCode == 73) {
+            return false;
+        }
+        // Ctrl + Shift + J (콘솔) 차단
+        if (e.ctrlKey && e.shiftKey && e.keyCode == 74) {
+            return false;
+        }
+        // Ctrl + U (페이지 소스 보기) 차단
+        if (e.ctrlKey && e.keyCode == 85) {
+            return false;
+        }
+        // Ctrl + S (페이지 저장) 차단
+        if (e.ctrlKey && e.keyCode == 83) {
+            return false;
+        }
+    };
+
+    // 3. 드래그 및 선택 방지 (계약서 내용 복사 방지)
+    document.onselectstart = function() {
+        return false;
+    };
+</script>
+
 </head>
 <body>
 
