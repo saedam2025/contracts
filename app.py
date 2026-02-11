@@ -40,10 +40,8 @@ def format_value(val):
     val = str(val).strip()
     try:
         num = float(val)
-        # 1. 0과 1 사이의 소수점인 경우 퍼센트로 변환 (예: 0.85 -> 85%)
         if 0 < num < 1:
             return f"{int(num * 100)}%"
-        # 2. 100 이상의 숫자인 경우 3자리마다 콤마 추가 (예: 28500 -> 28,500)
         if num >= 100:
             return "{:,}".format(int(num))
     except ValueError:
@@ -241,7 +239,7 @@ def save_contract():
         user_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
         if user_ip and ',' in user_ip: user_ip = user_ip.split(',')[0].strip()
 
-        # [수정 핵심 로직] 계약 완료 시 해당 행의 '연도'를 현재 연도로 명시적 업데이트
+        # [수정] 계약 완료 버튼을 눌렀을 때만 연도 입력
         df.at[idx, '연도'] = str(now_dt.year)
         df.at[idx, '연락처'] = str(data.get('phone', ''))
         df.at[idx, 'email'] = str(data.get('email', ''))
@@ -309,11 +307,11 @@ def upload_excel():
             if col in new_df.columns:
                 new_df[col] = new_df[col].apply(format_value)
         
-        current_year = str(datetime.now(KST).year)
+        # [수정] 엑셀 업로드 시 연도 자동 입력 로직 삭제 (빈칸 유지)
         if '연도' not in new_df.columns:
-            new_df['연도'] = current_year
+            new_df['연도'] = ""
         else:
-            new_df['연도'] = new_df['연도'].fillna(current_year).replace("", current_year)
+            new_df['연도'] = new_df['연도'].fillna("")
 
         existing_df = pd.read_excel(EXCEL_FILE, dtype=str) if os.path.exists(EXCEL_FILE) else pd.DataFrame()
         combined_df = pd.concat([existing_df, new_df], ignore_index=True)
@@ -326,6 +324,7 @@ def admin_add():
     try:
         new_data = request.json
         df = pd.read_excel(EXCEL_FILE, dtype=str)
+        # [수정] 신규 등록 시 연도 입력 로직 삭제 (빈칸 유지)
         new_row = {
             '계약구분': new_data.get('계약구분', '방과후강사'), 
             '수탁학교명': new_data.get('수탁학교명'),
@@ -339,7 +338,7 @@ def admin_add():
             '기타': format_value(new_data.get('기타', '0')),
             '근무시간': new_data.get('근무시간', ''),
             '계약기간': new_data.get('계약기간', ''),
-            '연도': str(datetime.now(KST).year),
+            '연도': "", # 빈칸으로 등록
             '계약완료일시': "", '파일명': "", 'IP': ""
         }
         df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
