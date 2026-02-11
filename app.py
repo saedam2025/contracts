@@ -33,6 +33,23 @@ SENDER_PASSWORD = os.environ.get('MAIL_PASSWORD')
 ADMIN_PASSWORD = 'school97$$'
 KST = timezone(timedelta(hours=9))
 
+def format_value(val):
+    """소수점(0.85)은 퍼센트(85%)로, 큰 숫자는 콤마(,) 형식으로 변환"""
+    if not val or pd.isna(val) or str(val).strip() == "":
+        return ""
+    val = str(val).strip()
+    try:
+        num = float(val)
+        # 1. 0과 1 사이의 소수점인 경우 퍼센트로 변환 (예: 0.85 -> 85%)
+        if 0 < num < 1:
+            return f"{int(num * 100)}%"
+        # 2. 100 이상의 숫자인 경우 3자리마다 콤마 추가 (예: 28500 -> 28,500)
+        if num >= 100:
+            return "{:,}".format(int(num))
+    except ValueError:
+        pass
+    return val
+
 def init_excel():
     """엑셀 초기화 (모든 읽기 작업에 dtype=str 적용)"""
     columns = [
@@ -108,7 +125,13 @@ def contract(safe_id):
                 with open(path, 'r', encoding='utf-8') as f:
                     c = f.read()
                     for col in df.columns:
-                        val = str(user_data.get(col, '')) if pd.notna(user_data.get(col)) else ""
+                        raw_val = user_data.get(col, '')
+                        # 숫자 관련 데이터는 출력 시 format_value 적용
+                        if col in ['수수료', '보조금', '경력수당', '직책수당', '기타']:
+                            val = format_value(raw_val)
+                        else:
+                            val = str(raw_val) if pd.notna(raw_val) else ""
+                        
                         c = c.replace(f"{{{{ data.{col} }}}}", val)
                         display_style = "display:none" if not val or val == '0' or str(val).strip() == '' else "display:table-row"
                         c = c.replace(f"{{{{ style.{col} }}}}", display_style)
@@ -149,7 +172,6 @@ def save_contract():
         stamp_path = os.path.abspath(os.path.join(os.getcwd(), 'static', 'stamp7.png'))
         stamp_uri = f"file://{stamp_path}"
 
-        # [디자인 복구] 서명란 레이아웃 원복
         signature_section = f"""
         <div class="signature-area" style="margin-top: 40px; position: relative; min-height: 150px;">
             <p style="text-align: center; margin-bottom: 50px;">{now_dt.strftime('%Y년 %m월 %d일')}</p>
@@ -179,7 +201,13 @@ def save_contract():
                 with open(path, 'r', encoding='utf-8') as f:
                     c = f.read()
                     for col in df.columns:
-                        val = str(final_school_name) if col == '수탁학교명' else (str(df.at[idx, col]) if pd.notna(df.at[idx, col]) else "")
+                        raw_val = str(final_school_name) if col == '수탁학교명' else (str(df.at[idx, col]) if pd.notna(df.at[idx, col]) else "")
+                        # PDF 생성 시에도 숫자 관련 데이터는 format_value 적용
+                        if col in ['수수료', '보조금', '경력수당', '직책수당', '기타']:
+                            val = format_value(raw_val)
+                        else:
+                            val = raw_val
+                            
                         c = c.replace(f"{{{{ data.{col} }}}}", val)
                         display_style = "display:none" if not val or val == '0' or str(val).strip() == '' else "display:table-row"
                         c = c.replace(f"{{{{ style.{col} }}}}", display_style)
@@ -188,7 +216,6 @@ def save_contract():
 
         content1, content2 = get_cleaned_content(f"{contract_type}.txt"), get_cleaned_content(f"{contract_type}2.txt")
         
-        # [디자인 복구] CSS 및 여백 원복
         html_content = f"""
         <html><head><meta charset="UTF-8">
         <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
@@ -211,10 +238,8 @@ def save_contract():
         filename = f"{contract_type}_{safe_school}_{safe_name}_{now_dt.strftime('%Y%m%d_%H%M%S')}.pdf"
         pdf_path = os.path.join(CONTRACTS_DIR, filename)
         
-        # [디자인 복구] PDF 출력 여백 원복
         pdfkit.from_string(html_content, pdf_path, configuration=PDF_CONFIG, options={'page-size': 'A4', 'encoding': "UTF-8", 'javascript-delay': '1000', 'enable-local-file-access': None, 'margin-top': '25', 'margin-bottom': '25', 'margin-left': '20', 'margin-right': '20'})
         
-        # 실제 IP 주소 가져오기 (프록시 대응)
         user_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
         if user_ip and ',' in user_ip:
             user_ip = user_ip.split(',')[0].strip()
@@ -261,7 +286,7 @@ def admin_page():
         depts = sorted([d for d in full_df['부서명'].unique() if d != ""])
 
         total_pages = (len(df) // per_page) + (1 if len(df) % per_page > 0 else 0)
-        total_count = len(df) # 전체 데이터 개수
+        total_count = len(df)
         items = df.iloc[(page-1)*per_page : page*per_page].to_dict('records')
         for i, item in enumerate(items):
             item['orig_idx'] = df.index[(page-1)*per_page + i]
@@ -270,10 +295,19 @@ def admin_page():
 
 @app.route('/c_admin/upload_excel', methods=['POST'])
 def upload_excel():
-    if 'excel_file' not in request.files: return jsonify({'status': 'error', 'message': '파일 없음'}), 400
+    if 'excel_file' not in request.files: 
+        return jsonify({'status': 'error', 'message': '파일 없음'}), 400
+    
     file = request.files['excel_file']
     try:
         new_df = pd.read_excel(file, dtype=str)
+        
+        # 업로드 시 숫자/수수료 데이터 일괄 포맷팅
+        target_cols = ['수수료', '보조금', '경력수당', '직책수당', '기타']
+        for col in target_cols:
+            if col in new_df.columns:
+                new_df[col] = new_df[col].apply(format_value)
+        
         existing_df = pd.read_excel(EXCEL_FILE, dtype=str) if os.path.exists(EXCEL_FILE) else pd.DataFrame()
         now_dt_kst = datetime.now(KST)
         if '연도' not in new_df.columns: new_df['연도'] = str(now_dt_kst.year)
@@ -287,17 +321,18 @@ def admin_add():
     try:
         new_data = request.json
         df = pd.read_excel(EXCEL_FILE, dtype=str)
+        # 개별 추가 시에도 format_value 적용하여 저장
         new_row = {
             '계약구분': new_data.get('계약구분', '방과후강사'), 
             '수탁학교명': new_data.get('수탁학교명'),
             '부서명': new_data.get('부서명'), 
             '성명': new_data.get('성명'), 
             '주민번호': new_data.get('주민번호'),
-            '수수료': str(new_data.get('수수료', '0')),
-            '보조금': str(new_data.get('보조금', '0')),
-            '경력수당': str(new_data.get('경력수당', '0')),
-            '직책수당': str(new_data.get('직책수당', '0')),
-            '기타': str(new_data.get('기타', '0')),
+            '수수료': format_value(new_data.get('수수료', '0')),
+            '보조금': format_value(new_data.get('보조금', '0')),
+            '경력수당': format_value(new_data.get('경력수당', '0')),
+            '직책수당': format_value(new_data.get('직책수당', '0')),
+            '기타': format_value(new_data.get('기타', '0')),
             '근무시간': new_data.get('근무시간', ''),
             '계약기간': new_data.get('계약기간', ''),
             '연도': str(datetime.now(KST).year), 
