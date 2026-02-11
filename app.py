@@ -126,7 +126,6 @@ def contract(safe_id):
                     c = f.read()
                     for col in df.columns:
                         raw_val = user_data.get(col, '')
-                        # 숫자 관련 데이터는 출력 시 format_value 적용
                         if col in ['수수료', '보조금', '경력수당', '직책수당', '기타']:
                             val = format_value(raw_val)
                         else:
@@ -202,7 +201,6 @@ def save_contract():
                     c = f.read()
                     for col in df.columns:
                         raw_val = str(final_school_name) if col == '수탁학교명' else (str(df.at[idx, col]) if pd.notna(df.at[idx, col]) else "")
-                        # PDF 생성 시에도 숫자 관련 데이터는 format_value 적용
                         if col in ['수수료', '보조금', '경력수당', '직책수당', '기타']:
                             val = format_value(raw_val)
                         else:
@@ -235,7 +233,13 @@ def save_contract():
         """
         
         safe_school, safe_name = str(final_school_name).replace(' ', ''), str(data['name']).replace(' ', '')
-        filename = f"{contract_type}_{safe_school}_{safe_name}_{now_dt.strftime('%Y%m%d_%H%M%S')}.pdf"
+        
+        # [파일명 변경 로직] 코디사업자/코디근로자일 경우 '센터장'으로 표시
+        display_contract_type = contract_type
+        if contract_type in ['코디사업자', '코디근로자']:
+            display_contract_type = "센터장"
+            
+        filename = f"{display_contract_type}_{safe_school}_{safe_name}_{now_dt.strftime('%Y%m%d_%H%M%S')}.pdf"
         pdf_path = os.path.join(CONTRACTS_DIR, filename)
         
         pdfkit.from_string(html_content, pdf_path, configuration=PDF_CONFIG, options={'page-size': 'A4', 'encoding': "UTF-8", 'javascript-delay': '1000', 'enable-local-file-access': None, 'margin-top': '25', 'margin-bottom': '25', 'margin-left': '20', 'margin-right': '20'})
@@ -302,7 +306,6 @@ def upload_excel():
     try:
         new_df = pd.read_excel(file, dtype=str)
         
-        # 업로드 시 숫자/수수료 데이터 일괄 포맷팅
         target_cols = ['수수료', '보조금', '경력수당', '직책수당', '기타']
         for col in target_cols:
             if col in new_df.columns:
@@ -321,7 +324,6 @@ def admin_add():
     try:
         new_data = request.json
         df = pd.read_excel(EXCEL_FILE, dtype=str)
-        # 개별 추가 시에도 format_value 적용하여 저장
         new_row = {
             '계약구분': new_data.get('계약구분', '방과후강사'), 
             '수탁학교명': new_data.get('수탁학교명'),
