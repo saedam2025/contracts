@@ -54,7 +54,7 @@
             display: inline-flex; align-items: center; gap: 6px;
         }
         .btn-add-toggle { background: var(--saedam-green); color: white; }
-        .btn-add-toggle:hover { background: #059669; transform: translateY(-2px); }
+        .btn-add-toggle:hover { background: #059669; transform: translateY(-1px); }
         .btn-excel { background: #f1f5f9; color: var(--text-main); border: 1px solid var(--border-color); }
         .btn-excel:hover { background: #e2e8f0; }
 
@@ -70,7 +70,7 @@
         .stat-value { font-size: 1.6rem; font-weight: 800; color: var(--saedam-navy); }
         .stat-value.green { color: var(--saedam-green); }
         .stat-value.red { color: var(--saedam-red); }
-        .progress-wrapper { width: 85%; height: 8px; background: #f1f5f9; border-radius: 10px; margin-top: 10px; overflow: hidden; border: 1px solid #e2e8f0; }
+        .progress-wrapper { width: 85%; height: 6px; background: #f1f5f9; border-radius: 10px; margin-top: 10px; overflow: hidden; border: 1px solid #e2e8f0; }
         .progress-fill { height: 100%; background: linear-gradient(90deg, var(--saedam-blue), var(--saedam-green)); border-radius: 10px; transition: width 1s ease-in-out; }
 
         /* Input Form */
@@ -159,7 +159,7 @@
             부서명: val('new-dept'),
             성명: val('new-name'),
             주민번호: val('new-ssn'),
-            수수료: val('new-fee') || 0,
+            수수료: val('new-fee') || '0',
             보조금: val('new-subsidy') || 0,
             경력수당: val('new-career') || 0,
             직책수당: val('new-position') || 0,
@@ -271,8 +271,7 @@
             <div class="input-group"><label>부서명/직책</label><input type="text" id="new-dept" placeholder="과목/직책"></div>
             <div class="input-group"><label>강사명</label><input type="text" id="new-name" placeholder="성함"></div>
             <div class="input-group"><label>주민번호</label><input type="text" id="new-ssn" placeholder="주민번호"></div>
-            <div class="input-group"><label>수수료</label><input type="number" id="new-fee" value="0"></div>
-            <div class="input-group"><label>보조금</label><input type="number" id="new-subsidy" value="0"></div>
+            <div class="input-group"><label>수수료</label><input type="text" id="new-fee" value="0"></div> <div class="input-group"><label>보조금</label><input type="number" id="new-subsidy" value="0"></div>
             <div class="input-group"><label>경력수당</label><input type="number" id="new-career" value="0"></div>
             <div class="input-group"><label>직책수당</label><input type="number" id="new-position" value="0"></div>
             <div class="input-group"><label>기타수당</label><input type="number" id="new-etc" value="0"></div>
@@ -324,10 +323,10 @@
             <input type="text" name="name" placeholder="성명 입력" value="{{ request.args.get('name', '') }}">
         </div>
         <div style="display: flex; gap: 6px;">
-            <button type="submit" style="background: var(--saedam-blue); color: white; padding: 0 20px;">조회</button>
-            <button type="button" onclick="location.href='/c_admin'" style="background: #64748b; color: white; padding: 0 15px;">초기화</button>
+            <button type="submit" style="background: var(--saedam-blue); color: white; padding: 7px 20px; height: 33px; align-self: flex-end;">조회</button>
+            <button type="button" onclick="location.href='/c_admin'" style="background: #64748b; color: white; padding: 7px 15px; height: 33px; align-self: flex-end;">초기화</button>
         </div>
-        <button type="button" onclick="deleteSelected()" style="background:var(--saedam-red); color: white; margin-left: auto;">선택 삭제</button>
+        <button type="button" onclick="deleteSelected()" style="background:var(--saedam-red); color: white; margin-left: auto; height: 39px;">선택 삭제</button>
     </form>
 
     <div class="table-wrapper">
