@@ -311,20 +311,28 @@
     let drawing = false;
     let isSigned = false;
 
-    // 캔버스 사이즈 조절
+    // 캔버스 사이즈 조절 및 설정
     function resizeCanvas() {
-        canvas.width = canvas.parentElement.clientWidth;
-        canvas.height = 200;
-        // 리사이즈 후 컨텍스트 설정 초기화 방지
+        const ratio = Math.max(window.devicePixelRatio || 1, 1);
+        const width = canvas.parentElement.clientWidth;
+        const height = 200;
+        
+        canvas.width = width * ratio;
+        canvas.height = height * ratio;
+        canvas.style.width = width + 'px';
+        canvas.style.height = height + 'px';
+        
+        ctx.scale(ratio, ratio);
         ctx.lineWidth = 3;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         ctx.strokeStyle = '#1a202c';
     }
+    
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
-    // 좌표 계산 (모바일 터치 대응 정밀화)
+    // 정밀 좌표 계산 함수
     function getPos(e) {
         const rect = canvas.getBoundingClientRect();
         let clientX, clientY;
@@ -343,18 +351,26 @@
         };
     }
 
+    // 그리기 시작
     function start(e) {
+        // 서명 시작 시 문서 전체 스크롤 방지
+        document.body.style.overflow = 'hidden'; 
+        
         drawing = true;
         isSigned = true;
         ctx.beginPath();
         const p = getPos(e);
         ctx.moveTo(p.x, p.y);
+        
+        // 브라우저 기본 동작 차단
+        if (e.cancelable) e.preventDefault();
     }
 
+    // 그리기 진행
     function draw(e) {
         if (!drawing) return;
         
-        // [수정] 모바일에서 스크롤 간섭 방지 (끊김 해결 핵심)
+        // [중요] 모바일 스크롤 절대 방지
         if (e.cancelable) e.preventDefault();
         
         const p = getPos(e);
@@ -362,9 +378,14 @@
         ctx.stroke();
     }
 
+    // 그리기 종료
     function stop() {
-        drawing = false;
-        ctx.closePath();
+        if (drawing) {
+            drawing = false;
+            ctx.closePath();
+            // 서명 종료 후 스크롤 복원
+            document.body.style.overflow = ''; 
+        }
     }
 
     // 마우스 이벤트
@@ -372,25 +393,19 @@
     canvas.addEventListener('mousemove', draw);
     window.addEventListener('mouseup', stop);
 
-    // [수정] 터치 이벤트 (끊김 방지를 위해 {passive: false} 적용 및 이벤트 세분화)
-    canvas.addEventListener('touchstart', function(e) {
-        start(e);
-    }, { passive: false });
-
-    canvas.addEventListener('touchmove', function(e) {
-        draw(e);
-    }, { passive: false });
-
+    // 터치 이벤트 (강제 옵션 적용)
+    canvas.addEventListener('touchstart', start, { passive: false });
+    canvas.addEventListener('touchmove', draw, { passive: false });
     canvas.addEventListener('touchend', stop, { passive: false });
-    
-    // 캔버스 밖으로 나갔을 때 처리
     canvas.addEventListener('touchcancel', stop, { passive: false });
 
+    // 서명 초기화
     document.getElementById('clear-btn').addEventListener('click', () => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         isSigned = false;
     });
 
+    // 데이터 저장/전송 로직 (기존과 동일)
     document.getElementById('submit-btn').addEventListener('click', function() {
         const phone = document.getElementById('phone').value.trim();
         const email = document.getElementById('email').value.trim();
