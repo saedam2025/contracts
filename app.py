@@ -241,9 +241,8 @@ def save_contract():
         user_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
         if user_ip and ',' in user_ip: user_ip = user_ip.split(',')[0].strip()
 
-        # [수정] 계약 완료 시 데이터 업데이트 로직 - 연도(year) 누락 방지 포함
-        current_year = str(now_dt.year)
-        df.at[idx, '연도'] = str(df.at[idx, '연도']) if pd.notna(df.at[idx, '연도']) and str(df.at[idx, '연도']).strip() != "" else current_year
+        # [수정 핵심 로직] 계약 완료 시 해당 행의 '연도'를 현재 연도로 명시적 업데이트
+        df.at[idx, '연도'] = str(now_dt.year)
         df.at[idx, '연락처'] = str(data.get('phone', ''))
         df.at[idx, 'email'] = str(data.get('email', ''))
         df.at[idx, '거주지'] = str(data.get('address', ''))
@@ -310,12 +309,10 @@ def upload_excel():
             if col in new_df.columns:
                 new_df[col] = new_df[col].apply(format_value)
         
-        # [수정] 연도 자동 입력 로직 보완
         current_year = str(datetime.now(KST).year)
         if '연도' not in new_df.columns:
             new_df['연도'] = current_year
         else:
-            # 기존 컬럼이 있어도 비어있는(NaN) 경우 현재 연도로 채움
             new_df['연도'] = new_df['연도'].fillna(current_year).replace("", current_year)
 
         existing_df = pd.read_excel(EXCEL_FILE, dtype=str) if os.path.exists(EXCEL_FILE) else pd.DataFrame()
@@ -329,7 +326,6 @@ def admin_add():
     try:
         new_data = request.json
         df = pd.read_excel(EXCEL_FILE, dtype=str)
-        # [수정] 연도 명시적으로 강제 입력
         new_row = {
             '계약구분': new_data.get('계약구분', '방과후강사'), 
             '수탁학교명': new_data.get('수탁학교명'),
@@ -343,7 +339,7 @@ def admin_add():
             '기타': format_value(new_data.get('기타', '0')),
             '근무시간': new_data.get('근무시간', ''),
             '계약기간': new_data.get('계약기간', ''),
-            '연도': str(datetime.now(KST).year), # 여기에 현재 연도가 들어갑니다.
+            '연도': str(datetime.now(KST).year),
             '계약완료일시': "", '파일명': "", 'IP': ""
         }
         df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
