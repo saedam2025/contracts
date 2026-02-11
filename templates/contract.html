@@ -135,7 +135,7 @@
 <body>
 
 <div class="contract-wrapper">
-    <div class="type-badge">{{ data.계약구분 }}</div>
+    <div class="type-badge">{{ '센터장' if data.계약구분 in ['코디근로자', '코디사업자'] else data.계약구분 }}</div>
     
     {% set doc_title = "" %}
     {% if data.계약구분 in ['방과후강사', '맞춤형강사'] %}
