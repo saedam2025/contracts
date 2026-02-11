@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="shortcut icon" href="https://www.saedam.org/img_sub/favicon.ico" type="image/x-icon">
-    <title>새담 관리자 - 강사계약관리</title>
+    <title>새담 관리자 - 계약관리</title>
     <style>
         :root {
             --saedam-blue: #004ea2;
@@ -172,7 +172,7 @@
 <div class="admin-container">
 
 <div class="admin-header">
-    <h2>📝 새담 방과후강사 계약관리 시스템</h2>
+    <h2>📝 새담 인재 계약관리 시스템</h2>
     <div style="display: flex; gap: 10px;">
         <input type="file" id="excelFile" accept=".xlsx, .xls" style="display: none;" onchange="uploadExcelFile()">
         <button type="button" class="btn-add-toggle" style="background: #6c757d;" onclick="document.getElementById('excelFile').click()">📂 엑셀 업로드</button>
@@ -314,7 +314,7 @@
 
         <div class="filter-group">
             <label>성명</label>
-            <input type="text" name="name" placeholder="강사명 입력" value="{{ request.args.get('name', '') }}">
+            <input type="text" name="name" placeholder="성명 입력" value="{{ request.args.get('name', '') }}">
         </div>
 
         <div style="display: flex; gap: 5px;">
