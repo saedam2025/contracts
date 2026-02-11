@@ -241,7 +241,16 @@ def save_contract():
         user_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
         if user_ip and ',' in user_ip: user_ip = user_ip.split(',')[0].strip()
 
-        df.at[idx, '연락처'], df.at[idx, 'email'], df.at[idx, '거주지'], df.at[idx, '계약완료일시'], df.at[idx, '파일명'], df.at[idx, 'IP'] = str(data.get('phone', '')), str(data.get('email', '')), str(data.get('address', '')), now_dt.strftime('%Y-%m-%d %H:%M:%S'), filename, user_ip
+        # [수정] 계약 완료 시 데이터 업데이트 로직 - 연도(year) 누락 방지 포함
+        current_year = str(now_dt.year)
+        df.at[idx, '연도'] = str(df.at[idx, '연도']) if pd.notna(df.at[idx, '연도']) and str(df.at[idx, '연도']).strip() != "" else current_year
+        df.at[idx, '연락처'] = str(data.get('phone', ''))
+        df.at[idx, 'email'] = str(data.get('email', ''))
+        df.at[idx, '거주지'] = str(data.get('address', ''))
+        df.at[idx, '계약완료일시'] = now_dt.strftime('%Y-%m-%d %H:%M:%S')
+        df.at[idx, '파일명'] = filename
+        df.at[idx, 'IP'] = user_ip
+        
         df.to_excel(EXCEL_FILE, index=False)
         
         try:
