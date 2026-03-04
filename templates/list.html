@@ -8,14 +8,14 @@
     <style>
         :root {
             --saedam-blue: #004ea2;
-            --saedam-navy: #002c63; /* 로그인창과 동일한 진한 네이비 */
+            --saedam-navy: #002c63;
             --bg-light: #f4f7fa;
             --border-color: #d1d8e0;
         }
 
         body {
             font-family: 'Pretendard', 'Malgun Gothic', sans-serif;
-            background-color: var(--saedam-navy); /* 바탕은 진한 네이비색 */
+            background-color: var(--saedam-navy);
             margin: 0;
             padding: 0;
             display: flex;
@@ -24,19 +24,20 @@
             min-height: 100vh;
         }
 
-        /* 가로로 넓은 컨테이너 (로그인창과 동일한 스타일) */
+        /* 메인 컨테이너 - 모바일 대응을 위한 flex-direction 설정 */
         .list-wrapper {
             width: 95%;
             max-width: 900px;
             background: #ffffff;
             display: flex;
+            flex-direction: row; /* 기본 가로 배치 */
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-            border-radius: 0; /* 사각 테두리, 입체감 없음 */
+            border-radius: 0;
             overflow: hidden;
-            min-height: 500px;
+            margin: 20px auto;
         }
 
-        /* 왼쪽 사이드 바 (로그인창 그림 영역과 통일) */
+        /* 왼쪽 사이드 바 (모바일 상단) */
         .list-side-bar {
             flex: 0.8;
             background: var(--saedam-blue);
@@ -67,7 +68,7 @@
             word-break: keep-all;
         }
 
-        /* 오른쪽 리스트 영역 */
+        /* 오른쪽 리스트 영역 (모바일 하단) */
         .list-content-area {
             flex: 1.5;
             padding: 50px;
@@ -98,10 +99,6 @@
             font-weight: 800;
         }
 
-        .user-name {
-            color: var(--saedam-blue);
-        }
-
         /* 계약 카드 스타일 */
         .contract-item {
             border: 1px solid var(--border-color);
@@ -120,14 +117,7 @@
 
         .info-box {
             flex: 1;
-        }
-
-        .label {
-            font-size: 0.75rem;
-            color: #999;
-            font-weight: 600;
-            display: block;
-            margin-bottom: 4px;
+            padding-right: 15px;
         }
 
         .school-name {
@@ -135,7 +125,7 @@
             font-weight: 700;
             color: var(--saedam-navy);
             display: block;
-            margin-bottom: 2px;
+            margin-bottom: 5px;
         }
 
         .dept-name {
@@ -143,63 +133,53 @@
             color: #666;
         }
 
-/* 작성하기 버튼 기본 상태 (진한 네이비 배경) */
-.btn-write {
-    position: relative;
-    display: inline-block;
-    text-decoration: none;
-    padding: 12px 25px;
-    font-size: 0.85rem;
-    font-weight: 700;
-    border-radius: 4px;
-    white-space: nowrap;
-    color: #ffffff;
-    background-color: var(--saedam-navy); /* */
-    border: none;
-    z-index: 1;
-    overflow: hidden; /* 광택이 버튼 밖으로 나가지 않게 차단 */
-}
+        /* 작성하기 버튼 (광택 애니메이션 유지) */
+        .btn-write {
+            position: relative;
+            display: inline-block;
+            text-decoration: none;
+            padding: 12px 20px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            border-radius: 4px;
+            white-space: nowrap;
+            color: #ffffff;
+            background-color: var(--saedam-navy);
+            border: none;
+            z-index: 1;
+            overflow: hidden;
+            text-align: center;
+        }
 
-/* 무한 반복되는 광택 레이어 */
-.btn-write::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: -150%;
-    width: 50%;
-    height: 100%;
-    background: linear-gradient(
-        to right, 
-        rgba(255, 255, 255, 0) 0%, 
-        rgba(255, 255, 255, 0.4) 50%, 
-        rgba(255, 255, 255, 0) 100%
-    );
-    transform: skewX(-25deg);
-    z-index: 2;
-    /* [수정] 마우스를 올리지 않아도 무한 반복되도록 애니메이션 설정 */
-    animation: shine-loop 2s infinite;
-}
+        .btn-write::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -150%;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(
+                to right, 
+                rgba(255, 255, 255, 0) 0%, 
+                rgba(255, 255, 255, 0.4) 50%, 
+                rgba(255, 255, 255, 0) 100%
+            );
+            transform: skewX(-25deg);
+            z-index: 2;
+            animation: shine-loop 2s infinite;
+        }
 
-/* 광택이 왼쪽에서 오른쪽으로 이동하는 애니메이션 정의 */
-@keyframes shine-loop {
-    0% {
-        left: -150%;
-    }
-    30% {
-        left: 150%;
-    }
-    100% {
-        left: 150%; /* 30%~100% 사이는 대기 시간으로 활용 (잠시 멈췄다 다시 흐름) */
-    }
-}
+        @keyframes shine-loop {
+            0% { left: -150%; }
+            30% { left: 150%; }
+            100% { left: 150%; }
+        }
 
-/* 마우스를 올렸을 때 버튼 자체의 반응 (선택 사항) */
-.btn-write:hover {
-    background-color: var(--saedam-blue); /* */
-    transition: background-color 0.3s;
-}
+        .btn-write:hover {
+            background-color: var(--saedam-blue);
+            transition: background-color 0.3s;
+        }
 
-        /* 빈 상태 */
         .empty-state {
             text-align: center;
             padding: 60px 0;
@@ -209,57 +189,82 @@
         }
 
         .footer-info {
-            margin-top: auto;
+            margin-top: 30px;
             padding-top: 20px;
             font-size: 0.75rem;
             color: #aaa;
             text-align: center;
         }
+
+        /* [모바일 대응 미디어 쿼리] */
+        @media (max-width: 768px) {
+            body {
+                align-items: flex-start;
+                height: auto;
+            }
+
+            .list-wrapper {
+                flex-direction: column; /* 세로 배치 */
+                width: 92%;
+                margin: 30px auto;
+            }
+
+            .list-side-bar {
+                padding: 30px 20px;
+            }
+
+            .list-side-bar h2 {
+                font-size: 1.5rem;
+            }
+
+            .list-content-area {
+                padding: 30px 20px;
+            }
+
+            .header-info h2 {
+                font-size: 1.3rem;
+            }
+
+            .contract-item {
+                flex-direction: column; /* 카드 내부 요소 세로 배치 */
+                align-items: flex-start;
+                gap: 15px;
+            }
+
+            .info-box {
+                padding-right: 0;
+            }
+
+            .btn-write {
+                width: 100%; /* 모바일에서 버튼 꽉 차게 */
+                box-sizing: border-box;
+            }
+        }
     </style>
+</head>
 
 <script>
-    // 1. 우클릭 방지
+    // 보안 스크립트 유지
     document.addEventListener('contextmenu', function(e) {
         e.preventDefault();
         alert('보안 정책에 따라 우클릭을 사용할 수 없습니다.');
     });
 
-    // 2. 단축키 차단 (F12, 소스보기, 개발자도구 등)
     document.onkeydown = function(e) {
-        // F12 차단
-        if (e.keyCode == 123) {
-            return false;
-        }
-        // Ctrl + Shift + I (개발자 도구) 차단
-        if (e.ctrlKey && e.shiftKey && e.keyCode == 73) {
-            return false;
-        }
-        // Ctrl + Shift + J (콘솔) 차단
-        if (e.ctrlKey && e.shiftKey && e.keyCode == 74) {
-            return false;
-        }
-        // Ctrl + U (페이지 소스 보기) 차단
-        if (e.ctrlKey && e.keyCode == 85) {
-            return false;
-        }
-        // Ctrl + S (페이지 저장) 차단
-        if (e.ctrlKey && e.keyCode == 83) {
-            return false;
-        }
+        if (e.keyCode == 123) return false;
+        if (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74)) return false;
+        if (e.ctrlKey && (e.keyCode == 85 || e.keyCode == 83)) return false;
     };
 
-    // 3. 드래그 및 선택 방지 (계약서 내용 복사 방지)
     document.onselectstart = function() {
         return false;
     };
 </script>
 
-</head>
 <body>
 
     <div class="list-wrapper">
         <div class="list-side-bar">
-
             <h2>CONTRACT</h2>
             <p>본인의 소중한 권리 보호를 위해<br>계약 내용을 꼼꼼히 확인해 주세요.</p>
         </div>
@@ -267,7 +272,7 @@
         <div class="list-content-area">
             <header class="header-info">
                 <span>(사)새담청소년교육문화원</span>
-                <h2><span class="user-name"></span>{{ name }}님 계약대상 목록</h2>
+                <h2>{{ name }}님 계약대상 목록</h2>
             </header>
 
             <div class="contract-list">
@@ -289,9 +294,9 @@
             </div>
 
             <footer class="footer-info">
-            <div style="text-align: center;">
-            <img src="http://www.saedam.org/img/logo01.gif" width="100">
-            </div>
+                <div style="text-align: center; margin-bottom: 10px;">
+                    <img src="http://www.saedam.org/img/logo01.gif" width="100" alt="로고">
+                </div>
                 ©SAEDAM Youth Education & Culture Center. All Rights Reserved.
             </footer>
         </div>
