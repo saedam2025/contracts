@@ -309,19 +309,31 @@ def admin_page():
         filtered_count = len(df) # 필터링된 결과 건수
         items = df.iloc[(page-1)*per_page : page*per_page].to_dict('records')
         
-        # 원본 인덱스 유지
+# 원본 인덱스 유지
         for i, item in enumerate(items):
             item['orig_idx'] = df.index[(page-1)*per_page + i]
+
+        # --- 페이지네이션 범위 계산 추가 ---
+        display_size = 20  # 노출할 페이지 번호 개수
+        move_size = 10     # Prev/Next 클릭 시 이동할 페이지 수
+        start_page = max(1, ((page - 1) // display_size) * display_size + 1)
+        end_page = min(total_pages, start_page + display_size - 1)
+        prev_block = max(1, page - move_size)
+        next_block = min(total_pages, page + move_size)
 
         return render_template('c_admin_.html', 
                                items=items, 
                                total_pages=total_pages, 
-                               total_count=total_count,       # 전체 대상
-                               completed_count=completed_count, # 완료 건수
-                               pending_count=pending_count,     # 대기 건수
-                               completion_rate=completion_rate, # 완료율
-                               filtered_count=filtered_count,   # 검색 결과 수
-                               current_page=page, 
+                               current_page=page,
+                               start_page=start_page,
+                               end_page=end_page,
+                               prev_block=prev_block,
+                               next_block=next_block,
+                               total_count=total_count,
+                               completed_count=completed_count,
+                               pending_count=pending_count,
+                               completion_rate=completion_rate,
+                               filtered_count=filtered_count,
                                years=years, 
                                schools=schools, 
                                depts=depts)
