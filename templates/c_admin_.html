@@ -323,6 +323,9 @@
         </div>
         
         <button type="button" onclick="deleteSelected()" style="background:#dc3545; color: white; border: none; padding: 6px 15px; border-radius: 4px; cursor: pointer; margin-left: auto; font-size: 0.8rem;">선택 삭제</button>
+        <button type="button" onclick="downloadSelected()" class="btn-download" style="background:#28a745; color:white; border:none; padding:6px 15px; border-radius:4px; cursor:pointer; font-weight: bold;">선택 항목 다운로드 (ZIP)
+    </button>
+
     </form>
 
     <div class="table-wrapper">
@@ -416,6 +419,23 @@
 </div>
 
 <script>
+    // 1. 보안 설정: 우클릭 및 단축키 방지
+    document.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        alert('보안 정책에 따라 우클릭을 사용할 수 없습니다.');
+    });
+
+    document.onkeydown = function(e) {
+        if (e.keyCode == 123 || 
+           (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74)) || 
+           (e.ctrlKey && (e.keyCode == 85 || e.keyCode == 83))) {
+            return false;
+        }
+    };
+
+    document.onselectstart = function() { return false; };
+
+    // 2. 상세 보기 토글
     function toggleRowDetail(rowId) {
         const row = document.getElementById(rowId);
         const allDetailRows = document.querySelectorAll('.detail-row');
@@ -423,17 +443,22 @@
         row.style.display = (row.style.display === 'table-row') ? 'none' : 'table-row';
     }
 
-    document.getElementById('check-all').onclick = function() {
-        document.querySelectorAll('.chk').forEach(c => c.checked = this.checked);
-    };
+    // 3. 전체 선택/해제
+    const checkAll = document.getElementById('check-all');
+    if (checkAll) {
+        checkAll.onclick = function() {
+            document.querySelectorAll('.chk').forEach(c => c.checked = this.checked);
+        };
+    }
 
+    // 4. 입력 폼 토글
     function toggleInputForm() {
         const form = document.getElementById('inputForm');
         form.style.display = (form.style.display === 'none' || form.style.display === '') ? 'block' : 'none';
     }
 
+    // 5. 신규 계약 정보 저장
     function addNewLecturer() {
-        // [수정] 수수료, 보조금 및 수당 항목 컬럼명 백엔드와 일치화
         const payload = {
             계약구분: document.getElementById('new-category').value,
             수탁학교명: document.getElementById('new-school').value,
@@ -448,48 +473,83 @@
             근무시간: document.getElementById('new-work-time').value,
             계약기간: document.getElementById('new-period').value
         };
-        fetch('/c_admin/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-        .then(res => res.json()).then(data => { if (data.status === 'success') location.reload(); });
+
+        if (!payload.성명) { alert("성명을 입력해주세요."); return; }
+
+        fetch('/c_admin/add', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify(payload) 
+        })
+        .then(res => res.json())
+        .then(data => { if (data.status === 'success') location.reload(); });
     }
 
+    // 6. 선택 삭제 (체크박스 클래스 .chk 기반)
     function deleteSelected() {
         const selected = Array.from(document.querySelectorAll('.chk:checked')).map(c => c.value);
-        if (selected.length === 0 || !confirm("삭제하시겠습니까?")) return;
-        fetch('/c_admin/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ indices: selected }) })
-        .then(res => res.json()).then(data => { if (data.status === 'success') location.reload(); });
+        if (selected.length === 0) { alert("삭제할 항목을 선택해 주세요."); return; }
+        
+        if (!confirm(selected.length + "건의 데이터를 삭제하시겠습니까?")) return;
+
+        fetch('/c_admin/delete', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ indices: selected }) 
+        })
+        .then(res => res.json())
+        .then(data => { if (data.status === 'success') location.reload(); });
     }
 
-function uploadExcelFile() {
-    const fileInput = document.getElementById('excelFile');
-    if (!fileInput.files[0]) return;
+    // 7. 엑셀 업로드
+    function uploadExcelFile() {
+        const fileInput = document.getElementById('excelFile');
+        if (!fileInput.files[0]) return;
 
-    if (!confirm("선택한 엑셀 파일의 데이터를 추가하시겠습니까?")) {
-        fileInput.value = '';
-        return;
-    }
-
-    const formData = new FormData();
-    formData.append('excel_file', fileInput.files[0]);
-
-    fetch('/c_admin/upload_excel', {
-        method: 'POST',
-        body: formData
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.status === 'success') {
-            alert(data.message);
-            location.reload();
-        } else {
-            alert("오류 발생: " + data.message);
+        if (!confirm("선택한 엑셀 파일의 데이터를 추가하시겠습니까?")) {
             fileInput.value = '';
+            return;
         }
-    })
-    .catch(err => {
-        alert("업로드 중 오류가 발생했습니다.");
-        fileInput.value = '';
-    });
-}
+
+        const formData = new FormData();
+        formData.append('excel_file', fileInput.files[0]);
+
+        fetch('/c_admin/upload_excel', { method: 'POST', body: formData })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert("오류 발생: " + data.message);
+                fileInput.value = '';
+            }
+        })
+        .catch(err => {
+            alert("업로드 중 오류가 발생했습니다.");
+            fileInput.value = '';
+        });
+    }
+
+    // 8. 선택 항목 다운로드 (수정됨: 선택자 .chk 사용 및 경로 통일)
+    function downloadSelected() {
+        // [중요] 기존 name="contract_ids"에서 .chk:checked로 변경하여 HTML과 일치시킴
+        const selectedCheckboxes = document.querySelectorAll('.chk:checked');
+        
+        if (selectedCheckboxes.length === 0) {
+            alert("다운로드할 항목을 선택해 주세요.");
+            return;
+        }
+
+        const ids = Array.from(selectedCheckboxes).map(cb => cb.value);
+        const idString = ids.join(',');
+
+        // 서버 라우팅에 맞춰 /c_admin/ 또는 /admin/ 확인 후 사용
+        if(confirm(ids.length + "건의 계약서를 ZIP파일로 다운로드하시겠습니까?")) {
+            location.href = `/admin/download_selected?ids=${idString}`;
+        }
+    }
 </script>
+
 </body>
 </html>
