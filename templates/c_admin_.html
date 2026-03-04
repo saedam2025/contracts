@@ -399,11 +399,19 @@
         </table>
     </div>
 
-    <div class="pagination">
-        {% for p in range(1, total_pages + 1) %}
+<div class="pagination">
+        <a href="{{ url_for('admin_page', page=1, year=request.args.get('year'), category=request.args.get('category'), school=request.args.get('school'), dept=request.args.get('dept'), name=request.args.get('name')) }}">«</a>
+
+        <a href="{{ url_for('admin_page', page=prev_block, year=request.args.get('year'), category=request.args.get('category'), school=request.args.get('school'), dept=request.args.get('dept'), name=request.args.get('name')) }}" style="background:#f8f9fa; font-weight:bold;">Prev 10</a>
+
+        {% for p in range(start_page, end_page + 1) %}
         <a href="{{ url_for('admin_page', page=p, year=request.args.get('year'), category=request.args.get('category'), school=request.args.get('school'), dept=request.args.get('dept'), name=request.args.get('name')) }}" 
            class="{{ 'active' if p == current_page else '' }}">{{p}}</a>
         {% endfor %}
+
+        <a href="{{ url_for('admin_page', page=next_block, year=request.args.get('year'), category=request.args.get('category'), school=request.args.get('school'), dept=request.args.get('dept'), name=request.args.get('name')) }}" style="background:#f8f9fa; font-weight:bold;">Next 10</a>
+
+        <a href="{{ url_for('admin_page', page=total_pages, year=request.args.get('year'), category=request.args.get('category'), school=request.args.get('school'), dept=request.args.get('dept'), name=request.args.get('name')) }}">»</a>
     </div>
 </div>
 
