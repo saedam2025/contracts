@@ -1,6 +1,8 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session, send_file, abort
 import pandas as pd
 import os
+import zipfile
+import io
 import pdfkit
 import yagmail
 from datetime import datetime, timedelta, timezone
@@ -66,7 +68,53 @@ def init_excel():
 
 init_excel()
 
+# --- [수정된 zip 다운로드 로직] ---
+
+@app.route('/admin/download_selected')
+def download_selected_contracts():
+    # 1. URL 파라미터에서 선택된 엑셀 인덱스 목록 받기
+    id_param = request.args.get('ids', '')
+    if not id_param:
+        return "<script>alert('선택된 항목이 없습니다.'); history.back();</script>", 400
+        
+    try:
+        target_indices = [int(i) for i in id_param.split(',')]
+        
+        # 2. 엑셀 데이터 로드
+        df = pd.read_excel(EXCEL_FILE, dtype=str).fillna("")
+        
+        # 3. 메모리에 ZIP 파일 생성
+        memory_file = io.BytesIO()
+        
+        with zipfile.ZipFile(memory_file, 'w') as zf:
+            file_count = 0
+            for idx in target_indices:
+                if idx in df.index:
+                    filename = df.at[idx, '파일명']
+                    # 파일명이 존재하고 실제 경로에 파일이 있는 경우만 추가
+                    if filename:
+                        file_path = os.path.join(CONTRACTS_DIR, filename)
+                        if os.path.exists(file_path):
+                            zf.write(file_path, arcname=filename)
+                            file_count += 1
+            
+            if file_count == 0:
+                return "<script>alert('선택한 항목 중 작성 완료된 PDF 파일이 없습니다.'); history.back();</script>"
+        
+        memory_file.seek(0)
+        
+        current_time = datetime.now(KST).strftime('%Y%m%d_%H%M%S')
+        return send_file(
+            memory_file,
+            mimetype='application/zip',
+            as_attachment=True,
+            download_name=f'selected_contracts_{current_time}.zip'
+        )
+    except Exception as e:
+        return f"다운로드 중 오류 발생: {str(e)}", 500
+
 # --- [강사 서비스 로직] ---
+
 @app.route('/')
 def home():
     return redirect(url_for('login'))
@@ -239,7 +287,6 @@ def save_contract():
         user_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
         if user_ip and ',' in user_ip: user_ip = user_ip.split(',')[0].strip()
 
-        # [수정] 계약 완료 버튼을 눌렀을 때만 연도 입력
         df.at[idx, '연도'] = str(now_dt.year)
         df.at[idx, '연락처'] = str(data.get('phone', ''))
         df.at[idx, 'email'] = str(data.get('email', ''))
@@ -260,7 +307,6 @@ def save_contract():
     except Exception as e: return jsonify({"status": "error", "message": f"오류 발생: {str(e)}"}), 500
 
 # --- [관리자 기능 로직] ---
-# --- [관리자 기능 로직] ---
 @app.route('/c_admin', methods=['GET', 'POST'])
 def admin_page():
     if request.method == 'POST':
@@ -277,21 +323,13 @@ def admin_page():
     s_year, s_cat, s_school, s_dept, s_name = request.args.get('year', ''), request.args.get('category', ''), request.args.get('school', ''), request.args.get('dept', ''), request.args.get('name', '')
 
     try:
-        # 전체 데이터 로드
         full_df = pd.read_excel(EXCEL_FILE, dtype=str).fillna("")
         
-        # --- [대시보드 통계 계산 시작] ---
-        # 1. 총 계약 대상 수
         total_count = len(full_df)
-        # 2. 계약 완료 수 (계약완료일시가 비어있지 않은 데이터)
         completed_count = len(full_df[full_df['계약완료일시'].str.strip() != ""])
-        # 3. 미작성 대기 수
         pending_count = total_count - completed_count
-        # 4. 전체 완료율 계산
         completion_rate = round((completed_count / total_count * 100), 1) if total_count > 0 else 0
-        # --- [대시보드 통계 계산 끝] ---
 
-        # 화면 출력을 위한 데이터 처리 (필터링 및 정렬)
         df = full_df.copy().sort_index(ascending=False)
         if s_year: df = df[df['연도'].astype(str).str.contains(s_year)]
         if s_cat: df = df[df['계약구분'] == s_cat]
@@ -299,23 +337,21 @@ def admin_page():
         if s_dept: df = df[df['부서명'] == s_dept]
         if s_name: df = df[df['성명'].str.contains(s_name)]
 
-        # 필터링용 드롭다운 목록
         years = sorted([str(y) for y in full_df['연도'].unique() if y != ""], reverse=True)
         schools = sorted([s for s in full_df['수탁학교명'].unique() if s != ""])
         depts = sorted([d for d in full_df['부서명'].unique() if d != ""])
 
-        # 페이징 처리
         total_pages = (len(df) // per_page) + (1 if len(df) % per_page > 0 else 0)
-        filtered_count = len(df) # 필터링된 결과 건수
+        filtered_count = len(df)
         items = df.iloc[(page-1)*per_page : page*per_page].to_dict('records')
         
-# 원본 인덱스 유지
+        # 원본 인덱스 유지
+        page_indices = df.index[(page-1)*per_page : page*per_page]
         for i, item in enumerate(items):
-            item['orig_idx'] = df.index[(page-1)*per_page + i]
+            item['orig_idx'] = page_indices[i]
 
-        # --- 페이지네이션 범위 계산 추가 ---
-        display_size = 20  # 노출할 페이지 번호 개수
-        move_size = 10     # Prev/Next 클릭 시 이동할 페이지 수
+        display_size = 20 
+        move_size = 10     
         start_page = max(1, ((page - 1) // display_size) * display_size + 1)
         end_page = min(total_pages, start_page + display_size - 1)
         prev_block = max(1, page - move_size)
@@ -339,6 +375,7 @@ def admin_page():
                                depts=depts)
     except Exception as e: 
         return f"에러: {str(e)}"
+
 @app.route('/c_admin/upload_excel', methods=['POST'])
 def upload_excel():
     if 'excel_file' not in request.files: return jsonify({'status': 'error', 'message': '파일 없음'}), 400
@@ -350,7 +387,6 @@ def upload_excel():
             if col in new_df.columns:
                 new_df[col] = new_df[col].apply(format_value)
         
-        # [수정] 엑셀 업로드 시 연도 자동 입력 로직 삭제 (빈칸 유지)
         if '연도' not in new_df.columns:
             new_df['연도'] = ""
         else:
@@ -367,7 +403,6 @@ def admin_add():
     try:
         new_data = request.json
         df = pd.read_excel(EXCEL_FILE, dtype=str)
-        # [수정] 신규 등록 시 연도 입력 로직 삭제 (빈칸 유지)
         new_row = {
             '계약구분': new_data.get('계약구분', '방과후강사'), 
             '수탁학교명': new_data.get('수탁학교명'),
@@ -381,7 +416,7 @@ def admin_add():
             '기타': format_value(new_data.get('기타', '0')),
             '근무시간': new_data.get('근무시간', ''),
             '계약기간': new_data.get('계약기간', ''),
-            '연도': "", # 빈칸으로 등록
+            '연도': "", 
             '계약완료일시': "", '파일명': "", 'IP': ""
         }
         df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
