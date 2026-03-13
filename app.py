@@ -315,7 +315,8 @@ def admin_page():
             return redirect(url_for('admin_page'))
         return "<script>alert('비밀번호가 틀렸습니다.'); history.back();</script>"
     
-if not session.get('admin_logged_in'):
+    # [버그 수정 포인트] 이 if 문은 admin_page 함수 안에(들여쓰기 포함) 있어야 합니다.
+    if not session.get('admin_logged_in'):
         return '''
         <div style="text-align:center; margin-top:100px; font-family:'Pretendard', sans-serif;">
             <div style="display:inline-block; padding:40px; border:1px solid #ddd; border-radius:15px; box-shadow:0 4px 15px rgba(0,0,0,0.1); background:#fff;">
@@ -334,13 +335,10 @@ if not session.get('admin_logged_in'):
                 </form>
             </div>
         </div>
-
         <script>
             const pwInput = document.getElementById('admin_pw');
             const rememberChk = document.getElementById('remember_pw');
             const loginForm = document.getElementById('adminLoginForm');
-
-            // 페이지 로드 시 로컬 스토리지에서 저장된 비밀번호 확인
             window.onload = function() {
                 const savedPw = localStorage.getItem('saedam_admin_pw');
                 if (savedPw) {
@@ -348,8 +346,6 @@ if not session.get('admin_logged_in'):
                     rememberChk.checked = true;
                 }
             };
-
-            // 폼 전송 시 체크박스 상태에 따라 저장/삭제 실행
             loginForm.onsubmit = function() {
                 if (rememberChk.checked) {
                     localStorage.setItem('saedam_admin_pw', pwInput.value);
