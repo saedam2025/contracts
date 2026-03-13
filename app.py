@@ -333,11 +333,12 @@ def admin_page():
                     </div>
                     <button type="submit" style="padding:12px; width:100%; background:#002c63; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:1rem;">접속하기</button>
                 </form>
-            </div>
 
                 <div style="text-align: center; margin-bottom: 10px;">
                     <img src="http://www.saedam.org/img/logo01.gif" width="100" alt="Logo">
                 </div>
+
+            </div>
 
         </div>
 
