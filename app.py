@@ -315,8 +315,50 @@ def admin_page():
             return redirect(url_for('admin_page'))
         return "<script>alert('비밀번호가 틀렸습니다.'); history.back();</script>"
     
-    if not session.get('admin_logged_in'):
-        return '<div style="text-align:center; margin-top:100px; font-family:sans-serif;"><h2>🔐 관리자 인증</h2><form method="POST"><input type="password" name="admin_pw" placeholder="관리자 비밀번호" style="padding:10px; width:250px;"><button type="submit" style="padding:10px 20px;">접속</button></form></div>'
+if not session.get('admin_logged_in'):
+        return '''
+        <div style="text-align:center; margin-top:100px; font-family:'Pretendard', sans-serif;">
+            <div style="display:inline-block; padding:40px; border:1px solid #ddd; border-radius:15px; box-shadow:0 4px 15px rgba(0,0,0,0.1); background:#fff;">
+                <h2 style="color:#002c63; margin-bottom:25px; font-weight:800;">🔐 관리자 인증</h2>
+                <form method="POST" id="adminLoginForm">
+                    <div style="margin-bottom:15px;">
+                        <input type="password" name="admin_pw" id="admin_pw" placeholder="관리자 비밀번호" 
+                               style="padding:12px; width:280px; border:1px solid #ccc; border-radius:8px; font-size:1rem;">
+                    </div>
+                    <div style="margin-bottom:20px; text-align:left; padding-left:5px;">
+                        <label style="font-size:0.9rem; color:#666; cursor:pointer; display:flex; align-items:center; gap:8px;">
+                            <input type="checkbox" id="remember_pw" style="width:16px; height:16px; cursor:pointer;"> 비밀번호 저장
+                        </label>
+                    </div>
+                    <button type="submit" style="padding:12px; width:100%; background:#002c63; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:1rem;">접속하기</button>
+                </form>
+            </div>
+        </div>
+
+        <script>
+            const pwInput = document.getElementById('admin_pw');
+            const rememberChk = document.getElementById('remember_pw');
+            const loginForm = document.getElementById('adminLoginForm');
+
+            // 페이지 로드 시 로컬 스토리지에서 저장된 비밀번호 확인
+            window.onload = function() {
+                const savedPw = localStorage.getItem('saedam_admin_pw');
+                if (savedPw) {
+                    pwInput.value = savedPw;
+                    rememberChk.checked = true;
+                }
+            };
+
+            // 폼 전송 시 체크박스 상태에 따라 저장/삭제 실행
+            loginForm.onsubmit = function() {
+                if (rememberChk.checked) {
+                    localStorage.setItem('saedam_admin_pw', pwInput.value);
+                } else {
+                    localStorage.removeItem('saedam_admin_pw');
+                }
+            };
+        </script>
+        '''
 
     page = request.args.get('page', 1, type=int)
     per_page = 20
