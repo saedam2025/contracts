@@ -376,9 +376,15 @@ def admin_page():
         pending_count = total_count - completed_count
         completion_rate = round((completed_count / total_count * 100), 1) if total_count > 0 else 0
 
-        df = full_df.copy().sort_index(ascending=False)
+df = full_df.copy().sort_index(ascending=False)
         if s_year: df = df[df['연도'].astype(str).str.contains(s_year)]
-        if s_cat: df = df[df['계약구분'] == s_cat]
+        if s_cat:
+            if s_cat == '미작성':
+                # 계약완료일시 컬럼이 비어있는 행만 추출
+                df = df[df['계약완료일시'].astype(str).str.strip() == ""]
+            else:
+                # 그 외(방과후강사 등)는 기존 방식대로 추출
+                df = df[df['계약구분'] == s_cat]
         if s_school: df = df[df['수탁학교명'] == s_school]
         if s_dept: df = df[df['부서명'] == s_dept]
         if s_name: df = df[df['성명'].str.contains(s_name)]
