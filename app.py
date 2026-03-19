@@ -72,18 +72,13 @@ init_excel()
 
 @app.route('/admin/download_selected')
 def download_selected_contracts():
-    # 1. URL 파라미터에서 선택된 엑셀 인덱스 목록 받기
     id_param = request.args.get('ids', '')
     if not id_param:
         return "<script>alert('선택된 항목이 없습니다.'); history.back();</script>", 400
         
     try:
         target_indices = [int(i) for i in id_param.split(',')]
-        
-        # 2. 엑셀 데이터 로드
         df = pd.read_excel(EXCEL_FILE, dtype=str).fillna("")
-        
-        # 3. 메모리에 ZIP 파일 생성
         memory_file = io.BytesIO()
         
         with zipfile.ZipFile(memory_file, 'w') as zf:
@@ -91,7 +86,6 @@ def download_selected_contracts():
             for idx in target_indices:
                 if idx in df.index:
                     filename = df.at[idx, '파일명']
-                    # 파일명이 존재하고 실제 경로에 파일이 있는 경우만 추가
                     if filename:
                         file_path = os.path.join(CONTRACTS_DIR, filename)
                         if os.path.exists(file_path):
@@ -102,7 +96,6 @@ def download_selected_contracts():
                 return "<script>alert('선택한 항목 중 작성 완료된 PDF 파일이 없습니다.'); history.back();</script>"
         
         memory_file.seek(0)
-        
         current_time = datetime.now(KST).strftime('%Y%m%d_%H%M%S')
         return send_file(
             memory_file,
@@ -315,7 +308,6 @@ def admin_page():
             return redirect(url_for('admin_page'))
         return "<script>alert('비밀번호가 틀렸습니다.'); history.back();</script>"
     
-    # [버그 수정 포인트] 이 if 문은 admin_page 함수 안에(들여쓰기 포함) 있어야 합니다.
     if not session.get('admin_logged_in'):
         return '''
         <div style="text-align:center; margin-top:100px; font-family:'Pretendard', sans-serif;">
@@ -333,16 +325,11 @@ def admin_page():
                     </div>
                     <button type="submit" style="padding:12px; width:100%; background:#002c63; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:1rem;">접속하기</button>
                 </form>
-
                 <div style="text-align: center; margin-bottom: 10px;">
                     <img src="http://www.saedam.org/img/logo01.gif" width="100" alt="Logo">
                 </div>
-
             </div>
-
         </div>
-
-
         <script>
             const pwInput = document.getElementById('admin_pw');
             const rememberChk = document.getElementById('remember_pw');
@@ -376,18 +363,27 @@ def admin_page():
         pending_count = total_count - completed_count
         completion_rate = round((completed_count / total_count * 100), 1) if total_count > 0 else 0
 
-df = full_df.copy().sort_index(ascending=False)
-        if s_year: df = df[df['연도'].astype(str).str.contains(s_year)]
+        # --- [필터링 로직 수정 및 들여쓰기 교정 구간] ---
+        df = full_df.copy().sort_index(ascending=False)
+        
+        if s_year: 
+            df = df[df['연도'].astype(str).str.contains(s_year)]
+        
         if s_cat:
             if s_cat == '미작성':
-                # 계약완료일시 컬럼이 비어있는 행만 추출
+                # 계약완료일시가 비어있는 행만 추출
                 df = df[df['계약완료일시'].astype(str).str.strip() == ""]
             else:
-                # 그 외(방과후강사 등)는 기존 방식대로 추출
+                # 그 외 카테고리는 기존 방식대로 추출
                 df = df[df['계약구분'] == s_cat]
-        if s_school: df = df[df['수탁학교명'] == s_school]
-        if s_dept: df = df[df['부서명'] == s_dept]
-        if s_name: df = df[df['성명'].str.contains(s_name)]
+        
+        if s_school: 
+            df = df[df['수탁학교명'] == s_school]
+        if s_dept: 
+            df = df[df['부서명'] == s_dept]
+        if s_name: 
+            df = df[df['성명'].str.contains(s_name)]
+        # -----------------------------------------------
 
         years = sorted([str(y) for y in full_df['연도'].unique() if y != ""], reverse=True)
         schools = sorted([s for s in full_df['수탁학교명'].unique() if s != ""])
@@ -397,7 +393,6 @@ df = full_df.copy().sort_index(ascending=False)
         filtered_count = len(df)
         items = df.iloc[(page-1)*per_page : page*per_page].to_dict('records')
         
-        # 원본 인덱스 유지
         page_indices = df.index[(page-1)*per_page : page*per_page]
         for i, item in enumerate(items):
             item['orig_idx'] = page_indices[i]
