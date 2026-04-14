@@ -53,7 +53,7 @@ def format_value(val):
 def init_excel():
     """엑셀 초기화 (모든 읽기 작업에 dtype=str 적용)"""
     columns = [
-        '계약구분', '수탁학교명', '부서명', '성명', '주민번호', '수수료', '보조금', '경력수당', '직책수당', '기타', '근무시간', '계약기간', 'email', '연락처', '거주지', '계약완료일시', '연도', '파일명', 'IP'
+        '계약구분', '수탁학교명', '부서명', '성명', '주민번호', '수수료', '비고1', '보조금', '비고2', '경력수당', '비고3', '직책수당', '비고4', '기타', '근무시간', '계약기간', 'email', '연락처', '거주지', '계약완료일시', '연도', '파일명', 'IP'
     ]
     if not os.path.exists(EXCEL_FILE):
         df = pd.DataFrame(columns=columns)
@@ -457,9 +457,13 @@ def admin_add():
             '성명': new_data.get('성명'), 
             '주민번호': new_data.get('주민번호'),
             '수수료': format_value(new_data.get('수수료', '0')),
+            '비고1': new_data.get('비고1', ''), 
             '보조금': format_value(new_data.get('보조금', '0')),
+            '비고2': new_data.get('비고2', ''), 
             '경력수당': format_value(new_data.get('경력수당', '0')),
+            '비고3': new_data.get('비고3', ''), 
             '직책수당': format_value(new_data.get('직책수당', '0')),
+            '비고4': new_data.get('비고4', ''), 
             '기타': format_value(new_data.get('기타', '0')),
             '근무시간': new_data.get('근무시간', ''),
             '계약기간': new_data.get('계약기간', ''),
