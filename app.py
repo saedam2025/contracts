@@ -5,6 +5,7 @@ import zipfile
 import io
 import pdfkit
 import yagmail
+import PyPDF2  # PDF 페이지 분리를 위한 라이브러리 추가
 from datetime import datetime, timedelta, timezone
 from hashids import Hashids
 
@@ -73,6 +74,8 @@ init_excel()
 @app.route('/admin/download_selected')
 def download_selected_contracts():
     id_param = request.args.get('ids', '')
+    limit = request.args.get('limit', type=int) # limit 파라미터 추가
+    
     if not id_param:
         return "<script>alert('선택된 항목이 없습니다.'); history.back();</script>", 400
         
@@ -89,19 +92,50 @@ def download_selected_contracts():
                     if filename:
                         file_path = os.path.join(CONTRACTS_DIR, filename)
                         if os.path.exists(file_path):
-                            zf.write(file_path, arcname=filename)
-                            file_count += 1
+                            
+                            # limit(페이지 제한)이 설정된 경우 PDF 분리 작업 수행
+                            if limit:
+                                try:
+                                    reader = PyPDF2.PdfReader(file_path)
+                                    writer = PyPDF2.PdfWriter()
+                                    
+                                    # 요청한 페이지 수와 실제 PDF 페이지 수 중 작은 값을 선택하여 에러 방지
+                                    pages_to_extract = min(limit, len(reader.pages))
+                                    
+                                    for page_num in range(pages_to_extract):
+                                        writer.add_page(reader.pages[page_num])
+                                        
+                                    pdf_bytes = io.BytesIO()
+                                    writer.write(pdf_bytes)
+                                    pdf_bytes.seek(0)
+                                    
+                                    # 잘라낸 PDF 데이터를 zip 파일에 쓰기
+                                    zf.writestr(filename, pdf_bytes.read())
+                                    file_count += 1
+                                    
+                                except Exception as pdf_e:
+                                    # PDF 처리에 실패할 경우 안전하게 원본 파일을 그대로 포함
+                                    print(f"PDF 분리 실패 ({filename}): {pdf_e}")
+                                    zf.write(file_path, arcname=filename)
+                                    file_count += 1
+                            else:
+                                # 페이지 제한이 없으면 기존처럼 원본 그대로 포함
+                                zf.write(file_path, arcname=filename)
+                                file_count += 1
             
             if file_count == 0:
                 return "<script>alert('선택한 항목 중 작성 완료된 PDF 파일이 없습니다.'); history.back();</script>"
         
         memory_file.seek(0)
         current_time = datetime.now(KST).strftime('%Y%m%d_%H%M%S')
+        # 파일명으로 페이지 제한 버전인지 전체 버전인지 구분
+        prefix = f"1-{limit}page_" if limit else "" 
+        
         return send_file(
             memory_file,
             mimetype='application/zip',
             as_attachment=True,
-            download_name=f'selected_contracts_{current_time}.zip'
+            download_name=f'selected_{prefix}contracts_{current_time}.zip'
         )
     except Exception as e:
         return f"다운로드 중 오류 발생: {str(e)}", 500
