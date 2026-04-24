@@ -308,6 +308,7 @@
         </div>
         <button type="button" onclick="deleteSelected()" style="background:#dc3545; color: white; border: none; padding: 6px 15px; border-radius: 4px; cursor: pointer; margin-left: auto; font-size: 0.8rem;">선택 삭제</button>
         <button type="button" onclick="downloadSelected()" class="btn-download" style="background:#28a745; color:white; border:none; padding:6px 15px; border-radius:4px; cursor:pointer; font-weight: bold;">선택 항목 다운로드 (ZIP)</button>
+        <button type="button" onclick="downloadSelectedLimited(2)" class="btn-download" style="background:#17a2b8; color:white; border:none; padding:6px 15px; border-radius:4px; cursor:pointer; font-weight: bold; margin-left:5px;">1~2페이지 다운로드 (ZIP)</button>
     </form>
 
     <div class="table-wrapper">
@@ -509,6 +510,21 @@
         const idString = ids.join(',');
         if(confirm(ids.length + "건의 계약서를 ZIP파일로 다운로드하시겠습니까?")) {
             location.href = `/admin/download_selected?ids=${idString}`;
+        }
+    }
+
+    // --- 1~2페이지만 다운로드하는 새로운 JS 함수 추가됨 ---
+    function downloadSelectedLimited(limitPages) {
+        const selectedCheckboxes = document.querySelectorAll('.chk:checked');
+        if (selectedCheckboxes.length === 0) { 
+            alert("다운로드할 항목을 선택해 주세요."); 
+            return; 
+        }
+        const ids = Array.from(selectedCheckboxes).map(cb => cb.value);
+        const idString = ids.join(',');
+        
+        if(confirm(ids.length + "건의 계약서 중 앞의 " + limitPages + "페이지만 추출하여 ZIP파일로 다운로드하시겠습니까?")) {
+            location.href = `/admin/download_selected?ids=${idString}&limit=${limitPages}`;
         }
     }
 
