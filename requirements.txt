@@ -5,3 +5,4 @@ pdfkit
 yagmail
 hashids
 gunicorn
+PyPDF2
