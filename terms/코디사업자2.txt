@@ -19,7 +19,7 @@
             <td style="border: 1px solid #ccc; padding: 7px;"></td>
         </tr>
 <tr style="{{ style.경력수당 }}">
-        <td style="border: 1px solid #ccc; padding: 7px; text-align: center; font-weight: bold;">경력수당</td>
+        <td style="border: 1px solid #ccc; padding: 7px; text-align: center; font-weight: bold;">'계약완료수당</td>
         <td style="border: 1px solid #ccc; padding: 7px; text-align: right;">{{ data.경력수당 }}</td>
         <td style="border: 1px solid #ccc; padding: 7px;"></td>
     </tr>
