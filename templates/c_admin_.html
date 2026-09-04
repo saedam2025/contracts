@@ -309,7 +309,7 @@
         <button type="button" onclick="deleteSelected()" style="background:#dc3545; color: white; border: none; padding: 6px 15px; border-radius: 4px; cursor: pointer; margin-left: auto; font-size: 0.8rem;">선택 삭제</button>
         <button type="button" onclick="downloadSelected()" class="btn-download" style="background:#28a745; color:white; border:none; padding:6px 15px; border-radius:4px; cursor:pointer; font-weight: bold;">선택 항목 다운로드 (ZIP)</button>
         <button type="button" onclick="downloadSelectedLimited(2)" class="btn-download" style="background:#17a2b8; color:white; border:none; padding:6px 15px; border-radius:4px; cursor:pointer; font-weight: bold; margin-left:5px;">1~2페이지 다운로드 (ZIP)</button>
-        <button type="button" id="btnDownloadAll" onclick="downloadAll()" class="btn-download" style="background:var(--saedam-navy); color:white; border:none; padding:6px 15px; border-radius:4px; cursor:pointer; font-weight: bold; margin-left:5px;">전체 백업 다운로드 (계약서+리스트)</button>
+        <button type="button" id="btnDownloadAll" onclick="downloadAll()" class="btn-download" style="background:var(--saedam-navy); color:white; border:none; padding:6px 15px; border-radius:4px; cursor:pointer; font-weight: bold; margin-left:5px;">전체 백업 다운로드 (나눠받기)</button>
     </form>
 
     <div class="table-wrapper">
@@ -529,28 +529,9 @@
         }
     }
 
-    // --- 서버에 저장된 전체 계약서(PDF) + 계약리스트(엑셀)를 한번에 다운로드 ---
+    // --- 전체 계약서(PDF) + 계약리스트(엑셀) 나눠받기 화면으로 이동 ---
     function downloadAll() {
-        const totalCount = {{ total_count }};
-        const msg = "서버에 저장된 전체 계약서(PDF)와 계약리스트(엑셀 " + totalCount + "건)를 하나의 ZIP 파일로 내려받습니다. "
-                  + "파일이 많으면 준비에 다소 시간이 걸릴 수 있습니다. 진행할까요?";
-        if (!confirm(msg)) {
-            return;
-        }
-        const btn = document.getElementById('btnDownloadAll');
-        const originalText = btn.innerText;
-        btn.disabled = true;
-        btn.style.opacity = '0.6';
-        btn.style.cursor = 'wait';
-        btn.innerText = '압축 파일 준비 중...';
-        location.href = '/admin/download_all';
-        // 브라우저가 다운로드를 시작할 때까지 잠시 대기 후 버튼 복구
-        setTimeout(function() {
-            btn.disabled = false;
-            btn.style.opacity = '1';
-            btn.style.cursor = 'pointer';
-            btn.innerText = originalText;
-        }, 8000);
+        location.href = '/admin/download_parts';
     }
 
     /* --- 🌸 역동적 기류 및 꽃송이 혼합 애니메이션 --- */
