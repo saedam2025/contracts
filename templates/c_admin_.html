@@ -532,9 +532,9 @@
     // --- 서버에 저장된 전체 계약서(PDF) + 계약리스트(엑셀)를 한번에 다운로드 ---
     function downloadAll() {
         const totalCount = {{ total_count }};
-        if (!confirm("서버에 저장된 전체 계약서(PDF)와 계약리스트(엑셀 " + totalCount + "건)를 하나의 ZIP 파일로 내려받습니다.
-
-파일이 많으면 준비에 다소 시간이 걸릴 수 있습니다. 진행할까요?")) {
+        const msg = "서버에 저장된 전체 계약서(PDF)와 계약리스트(엑셀 " + totalCount + "건)를 하나의 ZIP 파일로 내려받습니다. "
+                  + "파일이 많으면 준비에 다소 시간이 걸릴 수 있습니다. 진행할까요?";
+        if (!confirm(msg)) {
             return;
         }
         const btn = document.getElementById('btnDownloadAll');
