@@ -1,8 +1,10 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for, session, send_file, abort
+from flask import Flask, render_template, request, jsonify, redirect, url_for, session, send_file, abort, Response
 import pandas as pd
 import os
 import zipfile
 import io
+import tempfile
+from urllib.parse import quote
 import pdfkit
 import yagmail
 import PyPDF2  # PDF 페이지 분리를 위한 라이브러리 추가
@@ -139,6 +141,113 @@ def download_selected_contracts():
         )
     except Exception as e:
         return f"다운로드 중 오류 발생: {str(e)}", 500
+
+# --- [전체 계약서 + 계약리스트 일괄 다운로드] ---
+
+def _iter_and_cleanup(path, chunk_size=65536):
+    """임시 zip 파일을 스트리밍으로 전송한 뒤 삭제"""
+    try:
+        with open(path, 'rb') as f:
+            while True:
+                chunk = f.read(chunk_size)
+                if not chunk:
+                    break
+                yield chunk
+    finally:
+        try:
+            os.remove(path)
+        except Exception:
+            pass
+
+@app.route('/admin/download_all')
+def download_all_contracts():
+    """서버에 저장된 전체 계약서(PDF) + 계약리스트(엑셀)를 하나의 ZIP으로 다운로드"""
+    if not session.get('admin_logged_in'):
+        return "<script>alert('관리자 로그인이 필요합니다.'); location.href='/c_admin';</script>", 403
+
+    try:
+        df = pd.read_excel(EXCEL_FILE, dtype=str).fillna("")
+    except Exception as e:
+        return f"계약리스트를 읽는 중 오류 발생: {str(e)}", 500
+
+    now_dt = datetime.now(KST)
+    stamp = now_dt.strftime('%Y%m%d_%H%M%S')
+
+    tmp = tempfile.NamedTemporaryFile(suffix='.zip', delete=False)
+    tmp_path = tmp.name
+    tmp.close()
+
+    try:
+        included, missing, extra = set(), [], []
+
+        with zipfile.ZipFile(tmp_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+            # 1) 계약리스트 엑셀
+            list_bytes = io.BytesIO()
+            df.to_excel(list_bytes, index=False)
+            zf.writestr(f'계약리스트_{stamp}.xlsx', list_bytes.getvalue())
+
+            # 2) 계약리스트에 등록된 계약서 PDF 전체
+            for idx, row in df.iterrows():
+                filename = str(row.get('파일명', '')).strip()
+                if not filename or filename.lower() == 'nan':
+                    continue
+                file_path = os.path.join(CONTRACTS_DIR, filename)
+                if os.path.exists(file_path):
+                    if filename not in included:
+                        zf.write(file_path, arcname=f'계약서/{filename}')
+                        included.add(filename)
+                else:
+                    missing.append(f"{idx} / {row.get('성명', '')} / {row.get('수탁학교명', '')} / {filename}")
+
+            # 3) 리스트에는 없지만 서버에 남아있는 계약서 파일도 함께 보관 (하위 폴더 포함)
+            if os.path.exists(CONTRACTS_DIR):
+                for root, _dirs, files in os.walk(CONTRACTS_DIR):
+                    for filename in sorted(files):
+                        file_path = os.path.join(root, filename)
+                        rel_path = os.path.relpath(file_path, CONTRACTS_DIR).replace(os.sep, '/')
+                        if rel_path in included:
+                            continue
+                        zf.write(file_path, arcname=f'계약서_목록외/{rel_path}')
+                        extra.append(rel_path)
+
+            # 4) 요약 정보
+            summary = [
+                f"다운로드 일시 : {now_dt.strftime('%Y-%m-%d %H:%M:%S')} (KST)",
+                f"계약리스트 총 건수 : {len(df)}건",
+                f"계약 완료(파일명 등록) 건수 : {len(df[df['파일명'].astype(str).str.strip() != ''])}건",
+                f"포함된 계약서 PDF : {len(included)}개",
+                f"목록 외 파일(리스트 미등록) : {len(extra)}개",
+                f"파일 없음(리스트에는 있으나 서버에 없음) : {len(missing)}건",
+                "",
+                "[포함된 폴더 구성]",
+                f"  계약리스트_{stamp}.xlsx : 전체 계약 리스트",
+                "  계약서/ : 계약리스트에 등록된 계약서 PDF",
+                "  계약서_목록외/ : 리스트에 없으나 서버에 보관 중인 파일",
+            ]
+            if missing:
+                summary += ["", "[파일 없음 목록] 번호 / 성명 / 수탁학교명 / 파일명"] + missing
+            if extra:
+                summary += ["", "[목록 외 파일]"] + extra
+            zf.writestr('다운로드_요약.txt', chr(10).join(summary).encode('utf-8'))
+
+        file_size = os.path.getsize(tmp_path)
+    except Exception as e:
+        try:
+            os.remove(tmp_path)
+        except Exception:
+            pass
+        return f"다운로드 파일 생성 중 오류 발생: {str(e)}", 500
+
+    download_name = f'전체계약백업_{stamp}.zip'
+    quoted_name = quote(download_name)
+    return Response(
+        _iter_and_cleanup(tmp_path),
+        mimetype='application/zip',
+        headers={
+            'Content-Disposition': f"attachment; filename=\"contracts_backup_{stamp}.zip\"; filename*=UTF-8''{quoted_name}",
+            'Content-Length': str(file_size),
+        }
+    )
 
 # --- [강사 서비스 로직] ---
 
