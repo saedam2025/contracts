@@ -146,20 +146,24 @@ def download_selected_contracts():
 
 # --- [전체 계약서 + 계약리스트 일괄 다운로드] ---
 
+DEFAULT_PART_SIZE = 50      # 한 번에 담을 계약서 개수
+MAX_PART_SIZE = 300
+
+
 def _download_error_page(title, detail=""):
     """다운로드 실패 시 관리자에게 원인을 보여주는 안내 페이지"""
     safe_detail = escape(str(detail))
     return f"""
     <div style="font-family:'Pretendard','Malgun Gothic',sans-serif; max-width:760px; margin:80px auto; padding:30px;
                 border:1px solid #f0c2c2; border-radius:12px; background:#fff8f8;">
-        <h2 style="color:#c92a2a; margin-top:0;">⚠ 전체 백업 다운로드 실패</h2>
+        <h2 style="color:#c92a2a; margin-top:0;">⚠ 백업 다운로드 실패</h2>
         <p style="font-size:1.05rem; color:#333;">{escape(str(title))}</p>
         <pre style="white-space:pre-wrap; word-break:break-all; background:#fff; border:1px solid #eee;
                     border-radius:8px; padding:15px; font-size:0.85rem; color:#555; max-height:340px; overflow:auto;">{safe_detail}</pre>
         <p style="font-size:0.85rem; color:#888;">위 내용을 관리자에게 전달하시면 원인 확인에 도움이 됩니다.</p>
-        <button onclick="location.href='/c_admin'"
+        <button onclick="location.href='/admin/download_parts'"
                 style="padding:12px 22px; background:#002c63; color:#fff; border:none; border-radius:8px;
-                       font-weight:700; cursor:pointer;">관리자 페이지로 돌아가기</button>
+                       font-weight:700; cursor:pointer;">다운로드 목록으로 돌아가기</button>
     </div>
     """, 500
 
@@ -183,15 +187,322 @@ def _iter_and_cleanup(path, chunk_size=65536):
 def _safe_arcname(raw):
     """엑셀에 저장된 파일명에서 경로 구분자를 제거해 안전한 파일명만 추출"""
     name = str(raw).strip().replace(chr(92), '/')
-    name = name.split('/')[-1].strip()
-    return name
+    return name.split('/')[-1].strip()
+
+
+def _read_contract_list():
+    """계약리스트 읽기 (실패해도 빈 표로 진행)"""
+    errors = []
+    try:
+        df = pd.read_excel(EXCEL_FILE, dtype=str).fillna("")
+    except Exception as e:
+        app.logger.exception('[backup] 계약리스트 읽기 실패')
+        errors.append(f'계약리스트 읽기 실패 : {type(e).__name__}: {e}')
+        df = pd.DataFrame()
+    return df, errors
+
+
+def _collect_backup_files(df):
+    """백업 대상 파일 목록을 항상 같은 순서로 수집
+
+    반환: (entries, missing, extra_count, errors)
+      entries : [(실제경로, zip내 경로, 파일크기)] - 리스트 등록분 먼저, 목록 외 파일 뒤
+    """
+    entries, missing, errors = [], [], []
+    seen = set()
+
+    # (1) 계약리스트에 등록된 계약서 (엑셀 행 순서 유지)
+    if '파일명' in df.columns:
+        for idx, row in df.iterrows():
+            try:
+                raw = str(row.get('파일명', '')).strip()
+                if not raw or raw.lower() in ('nan', 'none', 'nat'):
+                    continue
+                filename = _safe_arcname(raw)
+                if not filename or filename in seen:
+                    continue
+                file_path = os.path.join(CONTRACTS_DIR, filename)
+                if os.path.isfile(file_path):
+                    seen.add(filename)
+                    entries.append((file_path, f'계약서/{filename}', os.path.getsize(file_path)))
+                else:
+                    missing.append(f"{idx} / {row.get('성명', '')} / {row.get('수탁학교명', '')} / {filename}")
+            except Exception as e:
+                app.logger.exception('[backup] 계약서 목록 수집 실패')
+                errors.append(f'{idx}행 처리 실패 : {type(e).__name__}: {e}')
+    elif len(df) > 0:
+        errors.append("계약리스트에 '파일명' 열이 없어 등록 계약서를 찾지 못했습니다.")
+
+    # (2) 리스트에 없지만 서버에 남아있는 파일
+    extra_count = 0
+    try:
+        if os.path.isdir(CONTRACTS_DIR):
+            for root, _dirs, files in os.walk(CONTRACTS_DIR):
+                for filename in sorted(files):
+                    try:
+                        file_path = os.path.join(root, filename)
+                        rel_path = os.path.relpath(file_path, CONTRACTS_DIR).replace(os.sep, '/')
+                        if rel_path in seen or filename in seen:
+                            continue
+                        seen.add(rel_path)
+                        entries.append((file_path, f'계약서_목록외/{rel_path}', os.path.getsize(file_path)))
+                        extra_count += 1
+                    except Exception as e:
+                        app.logger.exception('[backup] 목록 외 파일 수집 실패')
+                        errors.append(f'목록 외 파일 처리 실패({filename}) : {type(e).__name__}: {e}')
+        else:
+            errors.append(f'계약서 보관 폴더를 찾을 수 없습니다 : {CONTRACTS_DIR}')
+    except Exception as e:
+        app.logger.exception('[backup] 계약서 폴더 탐색 실패')
+        errors.append(f'계약서 폴더 탐색 실패 : {type(e).__name__}: {e}')
+
+    return entries, missing, extra_count, errors
+
+
+def _make_list_excel_bytes(df):
+    """계약리스트 엑셀 바이트 생성 (실패 시 원본파일 → CSV 순으로 대체)"""
+    try:
+        buf = io.BytesIO()
+        df.to_excel(buf, index=False)
+        return buf.getvalue(), 'xlsx', None
+    except Exception as e:
+        app.logger.exception('[backup] 리스트 엑셀 생성 실패')
+        try:
+            with open(EXCEL_FILE, 'rb') as f:
+                return f.read(), 'xlsx', f'엑셀 생성 실패, 원본 파일로 대체 : {type(e).__name__}: {e}'
+        except Exception as e2:
+            try:
+                return (df.to_csv(index=False).encode('utf-8-sig'), 'csv',
+                        f'엑셀 첨부 실패, CSV로 대체 : {type(e2).__name__}: {e2}')
+            except Exception as e3:
+                return None, None, f'리스트 파일 생성 완전 실패 : {type(e3).__name__}: {e3}'
+
+
+def _new_temp_zip_path():
+    """임시 zip 경로 확보 (기본 임시폴더 → 데이터 디스크 → 작업폴더 순)"""
+    last_err = None
+    for tmp_dir in [None, MOUNT_PATH, os.getcwd()]:
+        try:
+            fd, path = tempfile.mkstemp(prefix='saedam_backup_', suffix='.zip', dir=tmp_dir)
+            os.close(fd)
+            return path
+        except Exception as e:
+            last_err = e
+    raise IOError(f'임시 파일을 만들 수 없습니다 : {last_err}')
+
+
+def _human_size(num):
+    for unit in ['B', 'KB', 'MB', 'GB']:
+        if num < 1024 or unit == 'GB':
+            return f'{num:,.1f}{unit}' if unit != 'B' else f'{int(num)}B'
+        num /= 1024.0
+
+
+def _parse_part_args(total_files):
+    """size / part 파라미터 검증"""
+    try:
+        size = int(request.args.get('size', DEFAULT_PART_SIZE))
+    except Exception:
+        size = DEFAULT_PART_SIZE
+    size = max(1, min(size, MAX_PART_SIZE))
+    total_parts = max(1, (total_files + size - 1) // size)
+    return size, total_parts
+
+
+@app.route('/admin/download_parts')
+def download_parts_page():
+    """전체 백업을 50개 단위로 나눈 다운로드 링크 목록 화면"""
+    if not session.get('admin_logged_in'):
+        return "<script>alert('관리자 로그인이 필요합니다.'); location.href='/c_admin';</script>", 403
+
+    try:
+        df, errors = _read_contract_list()
+        entries, missing, extra_count, collect_errors = _collect_backup_files(df)
+        errors = errors + collect_errors
+        total_files = len(entries)
+        total_bytes = sum(e[2] for e in entries)
+        size, total_parts = _parse_part_args(total_files)
+
+        rows = []
+        for part in range(1, total_parts + 1):
+            chunk = entries[(part - 1) * size: part * size]
+            if not chunk and part > 1:
+                continue
+            first_no = (part - 1) * size + 1
+            last_no = (part - 1) * size + len(chunk)
+            part_bytes = sum(c[2] for c in chunk)
+            extra_note = ' + 계약리스트' if part == 1 else ''
+            rows.append(
+                f"""
+                <tr>
+                    <td style="font-weight:700; color:#002c63;">{part} / {total_parts}</td>
+                    <td>{first_no} ~ {last_no}번</td>
+                    <td>{len(chunk)}개{extra_note}</td>
+                    <td>{escape(_human_size(part_bytes))}</td>
+                    <td>
+                        <a class="dl" data-part="{part}"
+                           href="/admin/download_all?part={part}&size={size}"
+                           style="display:inline-block; padding:8px 18px; background:#28a745; color:#fff;
+                                  border-radius:6px; text-decoration:none; font-weight:700;">내려받기</a>
+                        <span class="done" id="done{part}" style="margin-left:8px; color:#28a745; font-weight:700; display:none;">✔ 받음</span>
+                    </td>
+                </tr>
+                """
+            )
+
+        size_buttons = []
+        for opt in (20, 50, 100):
+            active = 'background:#002c63; color:#fff;' if opt == size else 'background:#eef2f7; color:#334;'
+            size_buttons.append(
+                f"""<a href="/admin/download_parts?size={opt}"
+                       style="padding:6px 14px; border-radius:6px; text-decoration:none; font-weight:600; {active}">{opt}개씩</a>"""
+            )
+
+        warn_html = ""
+        if missing or errors:
+            warn_lines = []
+            if missing:
+                warn_lines.append(f'· 리스트에는 있으나 서버에 파일이 없는 건 : {len(missing)}건')
+            for msg in errors[:5]:
+                warn_lines.append('· ' + escape(msg))
+            warn_html = (
+                '<div style="margin-top:18px; padding:14px; background:#fff8e1; border:1px solid #ffe08a;'
+                ' border-radius:8px; font-size:0.85rem; color:#7a5c00;">'
+                + '<br>'.join(warn_lines) + '</div>'
+            )
+
+        style = """
+        <style>
+            body { font-family:'Pretendard','Malgun Gothic',sans-serif; background:#f4f7fa; margin:0; padding:40px 0; color:#333; }
+            .wrap { width:860px; max-width:94%; margin:0 auto; background:#fff; border-radius:12px;
+                    border-top:5px solid #002c63; box-shadow:0 4px 20px rgba(0,0,0,0.1); padding:30px; }
+            h2 { color:#002c63; margin:0 0 6px 0; font-weight:800; }
+            .desc { color:#666; font-size:0.9rem; line-height:1.7; margin-bottom:20px; }
+            table { width:100%; border-collapse:collapse; margin-top:10px; }
+            th, td { padding:12px 10px; border-bottom:1px solid #eef1f5; text-align:left; font-size:0.9rem; }
+            th { background:#f8fafc; color:#556; font-size:0.8rem; font-weight:700; }
+            .top-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:16px; }
+            .stat { display:flex; gap:22px; flex-wrap:wrap; padding:16px; background:#f8fafc;
+                    border-radius:8px; margin-bottom:18px; font-size:0.9rem; }
+            .stat b { color:#002c63; font-size:1.15rem; }
+        </style>
+        """
+
+        body = f"""
+        {style}
+        <div class="wrap">
+            <h2>📦 전체 백업 나눠받기</h2>
+            <div class="desc">
+                한 번에 받으면 파일이 커서 네트워크가 끊길 수 있어, <b>{size}개씩</b> 나누어 내려받습니다.<br>
+                아래 링크를 <b>위에서부터 하나씩</b> 눌러 저장하세요. 계약리스트(엑셀)는 1부에 함께 들어 있고,
+                따로 받으실 수도 있습니다.
+            </div>
+
+            <div class="stat">
+                <div>계약서 파일 <b>{total_files}</b>개</div>
+                <div>전체 용량 <b>{escape(_human_size(total_bytes))}</b></div>
+                <div>분할 <b>{total_parts}</b>개</div>
+                <div>계약리스트 <b>{len(df)}</b>건</div>
+            </div>
+
+            <div class="top-actions">
+                <span style="font-size:0.85rem; color:#666; font-weight:600;">분할 크기</span>
+                {''.join(size_buttons)}
+                <a href="/admin/download_list_excel"
+                   style="margin-left:auto; padding:8px 16px; background:#17a2b8; color:#fff; border-radius:6px;
+                          text-decoration:none; font-weight:700;">📄 계약리스트만 받기</a>
+            </div>
+
+            <table>
+                <thead>
+                    <tr><th>구분</th><th>범위</th><th>파일 수</th><th>용량</th><th>다운로드</th></tr>
+                </thead>
+                <tbody>
+                    {''.join(rows) if rows else '<tr><td colspan="5">백업할 계약서 파일이 없습니다.</td></tr>'}
+                </tbody>
+            </table>
+
+            {warn_html}
+
+            <div style="margin-top:25px; display:flex; gap:10px;">
+                <button onclick="location.href='/c_admin'"
+                        style="padding:12px 22px; background:#002c63; color:#fff; border:none; border-radius:8px;
+                               font-weight:700; cursor:pointer;">관리자 페이지로 돌아가기</button>
+                <button onclick="location.href='/admin/download_parts?size={size}&debug=1'"
+                        style="padding:12px 22px; background:#eef2f7; color:#334; border:none; border-radius:8px;
+                               font-weight:600; cursor:pointer;">진단 정보 보기</button>
+            </div>
+        </div>
+
+        <script>
+            // 이미 받은 항목 표시 (같은 창에서만 유지)
+            document.querySelectorAll('a.dl').forEach(function(a) {{
+                var key = 'saedam_dl_' + a.dataset.part + '_{size}';
+                if (sessionStorage.getItem(key)) {{
+                    document.getElementById('done' + a.dataset.part).style.display = 'inline';
+                }}
+                a.addEventListener('click', function() {{
+                    sessionStorage.setItem(key, '1');
+                    document.getElementById('done' + a.dataset.part).style.display = 'inline';
+                }});
+            }});
+        </script>
+        """
+
+        if request.args.get('debug') == '1':
+            report = [
+                f'보관 경로 : {CONTRACTS_DIR}',
+                f'리스트 파일 : {EXCEL_FILE}',
+                f'계약리스트 건수 : {len(df)}',
+                f'백업 대상 파일 : {total_files}개 / {_human_size(total_bytes)}',
+                f'목록 외 파일 : {extra_count}개',
+                f'분할 : {size}개씩 {total_parts}개',
+                f'파일 없음 : {len(missing)}건',
+                f'오류 : {len(errors)}건',
+                '',
+                '[오류]'] + errors + ['', '[파일 없음]'] + missing + ['', '[대상 파일 목록]'] + [
+                f'{i + 1}. {e[1]} ({_human_size(e[2])})' for i, e in enumerate(entries)]
+            return Response(chr(10).join(report), content_type='text/plain; charset=utf-8')
+
+        return body
+
+    except Exception as e:
+        app.logger.exception('[backup] 다운로드 목록 화면 생성 실패')
+        return _download_error_page('다운로드 목록을 만드는 중 오류가 발생했습니다.',
+                                    f'{type(e).__name__}: {e}{chr(10)}{chr(10)}{traceback.format_exc()}')
+
+
+@app.route('/admin/download_list_excel')
+def download_list_excel():
+    """계약리스트(엑셀)만 다운로드"""
+    if not session.get('admin_logged_in'):
+        return "<script>alert('관리자 로그인이 필요합니다.'); location.href='/c_admin';</script>", 403
+    try:
+        df, _errors = _read_contract_list()
+        data, kind, err = _make_list_excel_bytes(df)
+        if data is None:
+            return _download_error_page('계약리스트 파일을 만들 수 없습니다.', err)
+        stamp = datetime.now(KST).strftime('%Y%m%d_%H%M%S')
+        download_name = f'계약리스트_{stamp}.{kind}'
+        mime = ('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                if kind == 'xlsx' else 'text/csv; charset=utf-8')
+        return Response(data, content_type=mime, headers={
+            'Content-Disposition': f"attachment; filename=\"contract_list_{stamp}.{kind}\"; filename*=UTF-8''{quote(download_name)}",
+            'Content-Length': str(len(data)),
+            'Cache-Control': 'no-store',
+        })
+    except Exception as e:
+        app.logger.exception('[backup] 계약리스트 다운로드 실패')
+        return _download_error_page('계약리스트 다운로드 중 오류가 발생했습니다.',
+                                    f'{type(e).__name__}: {e}{chr(10)}{chr(10)}{traceback.format_exc()}')
 
 
 @app.route('/admin/download_all')
 def download_all_contracts():
-    """서버에 저장된 전체 계약서(PDF) + 계약리스트(엑셀)를 하나의 ZIP으로 다운로드
+    """계약서(PDF) + 계약리스트(엑셀) 백업 ZIP 다운로드
 
-    ?debug=1 : 파일을 내려받지 않고 처리 결과 요약만 화면에 표시(장애 진단용)
+    ?part=N&size=50 : N번째 묶음만 (분할 다운로드)
+    ?debug=1        : 내려받지 않고 처리 결과 요약만 표시
     """
     if not session.get('admin_logged_in'):
         return "<script>alert('관리자 로그인이 필요합니다.'); location.href='/c_admin';</script>", 403
@@ -199,154 +510,112 @@ def download_all_contracts():
     debug_mode = request.args.get('debug') == '1'
     now_dt = datetime.now(KST)
     stamp = now_dt.strftime('%Y%m%d_%H%M%S')
-    errors = []
-
-    # 1) 계약리스트 읽기 (실패하면 계약서만이라도 받을 수 있도록 빈 표로 진행)
-    df = None
-    try:
-        df = pd.read_excel(EXCEL_FILE, dtype=str).fillna("")
-    except Exception as e:
-        app.logger.exception('[download_all] 계약리스트 읽기 실패')
-        errors.append(f'계약리스트 읽기 실패 : {type(e).__name__}: {e}')
-        df = pd.DataFrame()
 
     tmp_path = None
     try:
-        # 임시 zip 저장 위치 : 기본 임시폴더 → 데이터 디스크 순으로 시도(디스크 부족 대비)
-        tmp_path, last_err = None, None
-        for tmp_dir in [None, MOUNT_PATH, os.getcwd()]:
-            try:
-                fd, tmp_path = tempfile.mkstemp(prefix='saedam_backup_', suffix='.zip', dir=tmp_dir)
-                os.close(fd)
-                break
-            except Exception as e:
-                last_err = e
-                tmp_path = None
-        if not tmp_path:
-            raise IOError(f'임시 파일을 만들 수 없습니다 : {last_err}')
+        df, errors = _read_contract_list()
+        entries, missing, extra_count, collect_errors = _collect_backup_files(df)
+        errors = errors + collect_errors
+        total_files = len(entries)
+        size, total_parts = _parse_part_args(total_files)
 
-        included, missing, extra = {}, [], []
+        # 분할 여부 판단
+        part_arg = request.args.get('part')
+        if part_arg:
+            try:
+                part = int(part_arg)
+            except Exception:
+                return _download_error_page('잘못된 요청입니다.', f'part 값이 올바르지 않습니다 : {part_arg}')
+            if part < 1 or part > total_parts:
+                return _download_error_page(
+                    '요청하신 묶음이 없습니다.',
+                    f'현재 백업 대상은 {total_files}개, {size}개씩 {total_parts}개 묶음입니다. (요청: {part}번째)')
+            targets = entries[(part - 1) * size: part * size]
+            include_list = (part == 1)
+            label = f'{part}of{total_parts}'
+            download_name = f'전체계약백업_{stamp}_{part}부(총{total_parts}부).zip'
+            ascii_name = f'contracts_backup_{stamp}_part{part}of{total_parts}.zip'
+        else:
+            part, targets, include_list = None, entries, True
+            label = 'all'
+            download_name = f'전체계약백업_{stamp}.zip'
+            ascii_name = f'contracts_backup_{stamp}.zip'
+
+        tmp_path = _new_temp_zip_path()
+        added = 0
 
         with zipfile.ZipFile(tmp_path, 'w', zipfile.ZIP_DEFLATED, allowZip64=True) as zf:
-            # (1) 계약리스트 엑셀 : 실패 시 원본파일 → CSV 순으로 대체
-            list_name = f'계약리스트_{stamp}.xlsx'
-            try:
-                list_bytes = io.BytesIO()
-                df.to_excel(list_bytes, index=False)
-                zf.writestr(list_name, list_bytes.getvalue())
-            except Exception as e:
-                app.logger.exception('[download_all] 리스트 엑셀 생성 실패')
-                errors.append(f'엑셀 생성 실패, 원본 파일로 대체 : {type(e).__name__}: {e}')
+            # (1) 계약리스트 엑셀 (분할 시 1부에만 포함)
+            list_name = ''
+            if include_list:
+                data, kind, err = _make_list_excel_bytes(df)
+                if err:
+                    errors.append(err)
+                if data is not None:
+                    list_name = f'계약리스트_{stamp}.{kind}'
+                    zf.writestr(list_name, data)
+
+            # (2) 계약서 파일 (PDF는 이미 압축본이라 무압축으로 담아 처리 시간 단축)
+            for file_path, arcname, _fsize in targets:
                 try:
-                    zf.write(EXCEL_FILE, arcname=list_name)
-                except Exception as e2:
-                    errors.append(f'원본 엑셀 첨부 실패, CSV로 대체 : {type(e2).__name__}: {e2}')
-                    try:
-                        zf.writestr(f'계약리스트_{stamp}.csv',
-                                    df.to_csv(index=False).encode('utf-8-sig'))
-                    except Exception as e3:
-                        errors.append(f'CSV 대체도 실패 : {type(e3).__name__}: {e3}')
+                    zf.write(file_path, arcname=arcname, compress_type=zipfile.ZIP_STORED)
+                    added += 1
+                except Exception as e:
+                    app.logger.exception('[backup] 계약서 압축 실패')
+                    errors.append(f'압축 실패({arcname}) : {type(e).__name__}: {e}')
 
-            # (2) 계약리스트에 등록된 계약서 PDF
-            #     PDF는 이미 압축된 형식이므로 무압축(STORED)으로 담아 처리 시간을 줄임
-            if '파일명' in df.columns:
-                for idx, row in df.iterrows():
-                    try:
-                        raw = str(row.get('파일명', '')).strip()
-                        if not raw or raw.lower() in ('nan', 'none', 'nat'):
-                            continue
-                        filename = _safe_arcname(raw)
-                        if not filename:
-                            continue
-                        if filename in included:
-                            continue
-                        file_path = os.path.join(CONTRACTS_DIR, filename)
-                        if os.path.isfile(file_path):
-                            zf.write(file_path, arcname=f'계약서/{filename}',
-                                     compress_type=zipfile.ZIP_STORED)
-                            included[filename] = True
-                        else:
-                            missing.append(f"{idx} / {row.get('성명', '')} / {row.get('수탁학교명', '')} / {filename}")
-                    except Exception as e:
-                        app.logger.exception('[download_all] 계약서 압축 실패')
-                        errors.append(f'{idx}행 계약서 압축 실패 : {type(e).__name__}: {e}')
-            elif len(df) > 0:
-                errors.append("계약리스트에 '파일명' 열이 없어 등록 계약서를 찾지 못했습니다.")
-
-            # (3) 리스트에는 없지만 서버에 남아있는 파일 (하위 폴더 포함)
-            try:
-                if os.path.isdir(CONTRACTS_DIR):
-                    for root, _dirs, files in os.walk(CONTRACTS_DIR):
-                        for filename in sorted(files):
-                            try:
-                                file_path = os.path.join(root, filename)
-                                rel_path = os.path.relpath(file_path, CONTRACTS_DIR).replace(os.sep, '/')
-                                if rel_path in included or filename in included:
-                                    continue
-                                zf.write(file_path, arcname=f'계약서_목록외/{rel_path}',
-                                         compress_type=zipfile.ZIP_STORED)
-                                extra.append(rel_path)
-                            except Exception as e:
-                                app.logger.exception('[download_all] 목록 외 파일 압축 실패')
-                                errors.append(f'목록 외 파일 압축 실패({filename}) : {type(e).__name__}: {e}')
-                else:
-                    errors.append(f'계약서 보관 폴더를 찾을 수 없습니다 : {CONTRACTS_DIR}')
-            except Exception as e:
-                app.logger.exception('[download_all] 계약서 폴더 탐색 실패')
-                errors.append(f'계약서 폴더 탐색 실패 : {type(e).__name__}: {e}')
-
-            # (4) 요약 정보
+            # (3) 요약
             try:
                 done_count = 0
                 if '파일명' in df.columns:
                     done_count = int((df['파일명'].astype(str).str.strip() != "").sum())
                 summary = [
                     f"다운로드 일시 : {now_dt.strftime('%Y-%m-%d %H:%M:%S')} (KST)",
+                    f"묶음 : {('전체 한번에' if part is None else str(part) + '부 / 총 ' + str(total_parts) + '부 (' + str(size) + '개씩)')}",
                     f"보관 경로 : {CONTRACTS_DIR}",
                     f"계약리스트 총 건수 : {len(df)}건",
                     f"계약 완료(파일명 등록) 건수 : {done_count}건",
-                    f"포함된 계약서 PDF : {len(included)}개",
-                    f"목록 외 파일(리스트 미등록) : {len(extra)}개",
+                    f"백업 대상 계약서 전체 : {total_files}개",
+                    f"이 파일에 담긴 계약서 : {added}개",
+                    f"목록 외 파일(리스트 미등록) : {extra_count}개",
                     f"파일 없음(리스트에는 있으나 서버에 없음) : {len(missing)}건",
                     f"처리 중 오류 : {len(errors)}건",
                     "",
-                    "[포함된 폴더 구성]",
-                    f"  {list_name} : 전체 계약 리스트",
+                    "[폴더 구성]",
+                    (f"  {list_name} : 전체 계약 리스트" if list_name else "  (계약리스트는 1부에 포함되어 있습니다)"),
                     "  계약서/ : 계약리스트에 등록된 계약서 PDF",
                     "  계약서_목록외/ : 리스트에 없으나 서버에 보관 중인 파일",
-                ]
+                    "",
+                    "[이 파일에 담긴 목록]",
+                ] + [a for _p, a, _s in targets]
                 if missing:
                     summary += ["", "[파일 없음 목록] 번호 / 성명 / 수탁학교명 / 파일명"] + missing
-                if extra:
-                    summary += ["", "[목록 외 파일]"] + extra
                 if errors:
                     summary += ["", "[처리 중 오류]"] + errors
                 zf.writestr('다운로드_요약.txt', chr(10).join(summary).encode('utf-8'))
-            except Exception as e:
-                app.logger.exception('[download_all] 요약 생성 실패')
+            except Exception:
+                app.logger.exception('[backup] 요약 생성 실패')
 
         file_size = os.path.getsize(tmp_path)
         if file_size <= 0:
             raise IOError('생성된 ZIP 파일이 비어 있습니다.')
 
     except Exception as e:
-        app.logger.exception('[download_all] ZIP 생성 실패')
+        app.logger.exception('[backup] ZIP 생성 실패')
         if tmp_path:
             try:
                 os.remove(tmp_path)
             except Exception:
                 pass
-        return _download_error_page(
-            '압축 파일을 만드는 중 오류가 발생했습니다.',
-            f'{type(e).__name__}: {e}{chr(10)}{chr(10)}{traceback.format_exc()}'
-        )
+        return _download_error_page('압축 파일을 만드는 중 오류가 발생했습니다.',
+                                    f'{type(e).__name__}: {e}{chr(10)}{chr(10)}{traceback.format_exc()}')
 
-    # 진단 모드 : 실제 다운로드 없이 처리 결과만 확인
     if debug_mode:
         try:
             with zipfile.ZipFile(tmp_path) as zf:
                 names = zf.namelist()
                 report = [
+                    f'묶음 : {label}',
                     f'ZIP 크기 : {file_size:,} bytes',
                     f'항목 수 : {len(names)}개',
                     f'보관 경로 : {CONTRACTS_DIR}',
@@ -363,13 +632,11 @@ def download_all_contracts():
             except Exception:
                 pass
 
-    download_name = f'전체계약백업_{stamp}.zip'
-    quoted_name = quote(download_name)
     return Response(
         _iter_and_cleanup(tmp_path),
         mimetype='application/zip',
         headers={
-            'Content-Disposition': f"attachment; filename=\"contracts_backup_{stamp}.zip\"; filename*=UTF-8''{quoted_name}",
+            'Content-Disposition': f"attachment; filename=\"{ascii_name}\"; filename*=UTF-8''{quote(download_name)}",
             'Content-Length': str(file_size),
             'Cache-Control': 'no-store',
         }
