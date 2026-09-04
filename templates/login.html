@@ -216,7 +216,7 @@
 
                 <div class="form-group">
                     <label for="ssn">주민등록번호 <span style="font-family: Arial, sans-serif; font-weight: normal; color:#6FA8DC; font-size: 14px;">Registration Number</span></label>
-                    <input type="text" id="ssn" name="ssn" placeholder="800101-1234567" required>
+                    <input type="text" id="ssn" name="ssn" placeholder="800101-1234567" inputmode="numeric" maxlength="14" autocomplete="off" required>
                 </div>
 
                 <div class="form-group">
@@ -238,6 +238,66 @@
             </footer>
         </div>
     </div>
+
+<script>
+    /* 주민등록번호 입력 시 하이픈(-) 자동 입력 : 800101-1234567 */
+    (function() {
+        var ssnInput = document.getElementById('ssn');
+        if (!ssnInput) return;
+
+        var lastValue = ssnInput.value;
+
+        function formatSsn() {
+            var caret = ssnInput.selectionStart;
+            var oldValue = ssnInput.value;
+
+            // 커서 앞의 숫자 개수를 기억했다가 서식 적용 후 커서 위치를 복원
+            var digitsBeforeCaret = oldValue.slice(0, caret).replace(/[^0-9]/g, '').length;
+
+            var digits = oldValue.replace(/[^0-9]/g, '').slice(0, 13);
+
+            // 모바일 자판 등에서 백스페이스가 keydown으로 잡히지 않아
+            // 하이픈만 지워진 경우 : 하이픈 앞의 숫자를 대신 삭제
+            if (lastValue.length === oldValue.length + 1 &&
+                lastValue.replace(/[^0-9]/g, '') === oldValue.replace(/[^0-9]/g, '') &&
+                digitsBeforeCaret > 0) {
+                digits = digits.slice(0, digitsBeforeCaret - 1) + digits.slice(digitsBeforeCaret);
+                digitsBeforeCaret--;
+            }
+
+            var newValue = digits.length > 6 ? digits.slice(0, 6) + '-' + digits.slice(6) : digits;
+
+            if (newValue !== oldValue) {
+                ssnInput.value = newValue;
+            }
+
+            var pos = 0, counted = 0;
+            while (pos < newValue.length && counted < digitsBeforeCaret) {
+                if (newValue.charAt(pos) !== '-') counted++;
+                pos++;
+            }
+            // 하이픈 바로 앞에 커서가 멈추면 하이픈 뒤로 이동
+            if (newValue.charAt(pos) === '-') pos++;
+
+            try { ssnInput.setSelectionRange(pos, pos); } catch (e) {}
+            lastValue = newValue;
+        }
+
+        // 하이픈 위치에서 백스페이스를 누르면 하이픈을 건너뛰고 앞의 숫자를 삭제
+        ssnInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Backspace' &&
+                ssnInput.selectionStart === ssnInput.selectionEnd &&
+                ssnInput.selectionStart > 0 &&
+                ssnInput.value.charAt(ssnInput.selectionStart - 1) === '-') {
+                var p = ssnInput.selectionStart - 1;
+                ssnInput.setSelectionRange(p, p);
+            }
+        });
+
+        ssnInput.addEventListener('input', formatSsn);
+        ssnInput.addEventListener('paste', function() { setTimeout(formatSsn, 0); });
+    })();
+</script>
 
 </body>
 </html>
