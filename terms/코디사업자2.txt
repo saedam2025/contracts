@@ -18,8 +18,13 @@
             <td style="border: 1px solid #ccc; padding: 7px; text-align: right;">{{ data.수수료 }}</td>
             <td style="border: 1px solid #ccc; padding: 7px; text-align: center;">{{ data.비고1 }}</td>
         </tr>
-<tr style="{{ style.경력수당 }}">
-        <td style="border: 1px solid #ccc; padding: 7px; text-align: center; font-weight: bold;">기타수수료</td>
+<tr style="{{ style.보조금 }}">
+        <td style="border: 1px solid #ccc; padding: 7px; text-align: center; font-weight: bold;">보조금</td>
+        <td style="border: 1px solid #ccc; padding: 7px; text-align: right;">{{ data.보조금 }}</td>
+            <td style="border: 1px solid #ccc; padding: 7px; text-align: center;">{{ data.비고2 }}</td>
+    </tr>
+    <tr style="{{ style.경력수당 }}">
+        <td style="border: 1px solid #ccc; padding: 7px; text-align: center; font-weight: bold;">경력수당</td>
         <td style="border: 1px solid #ccc; padding: 7px; text-align: right;">{{ data.경력수당 }}</td>
             <td style="border: 1px solid #ccc; padding: 7px; text-align: center;">{{ data.비고3 }}</td>
     </tr>
